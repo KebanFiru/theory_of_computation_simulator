@@ -11,7 +11,7 @@ export default function SelectionModeIndicator({
   if (!isActive) return null;
 
   return (
-    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-black px-4 py-2 rounded-lg shadow-lg z-50 font-bold">
+    <div className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-[var(--warning)] text-[var(--warning-contrast)] px-4 py-2 rounded-lg shadow-lg z-50 font-bold">
       Selection Mode: Draw a rectangle around the DFA
     </div>
   );

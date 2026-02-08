@@ -1,2 +1,92 @@
 @import "tailwindcss";
 
+:root {
+	color-scheme: light;
+	--bg: #f8fafc;
+	--text: #0f172a;
+	--text-muted: #475569;
+	--text-subtle: #64748b;
+	--surface: #ffffff;
+	--surface-muted: #f1f5f9;
+	--surface-strong: #e2e8f0;
+	--surface-overlay: rgba(255, 255, 255, 0.95);
+	--surface-overlay-strong: rgba(255, 255, 255, 0.9);
+	--border: #e2e8f0;
+	--border-strong: #cbd5e1;
+	--accent: #e11d48;
+	--accent-strong: #be123c;
+	--accent-soft: #ffe4e6;
+	--accent-contrast: #ffffff;
+	--success: #10b981;
+	--success-strong: #059669;
+	--info: #2563eb;
+	--info-strong: #1d4ed8;
+	--info-soft: rgba(37, 99, 235, 0.12);
+	--warning: #f59e0b;
+	--warning-contrast: #111827;
+	--danger: #ef4444;
+	--overlay: rgba(15, 23, 42, 0.45);
+	--shadow-color: rgba(15, 23, 42, 0.15);
+	--canvas-bg: #f8fafc;
+	--canvas-node: #ffffff;
+	--canvas-node-selected: #2563eb;
+	--canvas-node-stroke: #0f172a;
+	--canvas-text: #0f172a;
+	--canvas-text-selected: #ffffff;
+	--canvas-selection: #ef4444;
+	--canvas-saved: #22c55e;
+	--canvas-saved-text: #16a34a;
+	--canvas-arrow: #374151;
+	--state-start: #ef4444;
+	--state-normal: #22c55e;
+	--state-accept: #3b82f6;
+}
+
+[data-theme="dark"] {
+	color-scheme: dark;
+	--bg: #0b1220;
+	--text: #e2e8f0;
+	--text-muted: #94a3b8;
+	--text-subtle: #64748b;
+	--surface: #0f172a;
+	--surface-muted: #111827;
+	--surface-strong: #1f2937;
+	--surface-overlay: rgba(15, 23, 42, 0.95);
+	--surface-overlay-strong: rgba(15, 23, 42, 0.9);
+	--border: #334155;
+	--border-strong: #475569;
+	--accent: #e11d48;
+	--accent-strong: #f43f5e;
+	--accent-soft: #3f1d2f;
+	--accent-contrast: #ffffff;
+	--success: #34d399;
+	--success-strong: #10b981;
+	--info: #38bdf8;
+	--info-strong: #0ea5e9;
+	--info-soft: rgba(56, 189, 248, 0.18);
+	--warning: #f59e0b;
+	--warning-contrast: #0f172a;
+	--danger: #fb7185;
+	--overlay: rgba(15, 23, 42, 0.7);
+	--shadow-color: rgba(0, 0, 0, 0.45);
+	--canvas-bg: #0b1220;
+	--canvas-node: #0f172a;
+	--canvas-node-selected: #1e40af;
+	--canvas-node-stroke: #94a3b8;
+	--canvas-text: #e2e8f0;
+	--canvas-text-selected: #f8fafc;
+	--canvas-selection: #f59e0b;
+	--canvas-saved: #10b981;
+	--canvas-saved-text: #34d399;
+	--canvas-arrow: #94a3b8;
+	--state-start: #fb7185;
+	--state-normal: #34d399;
+	--state-accept: #60a5fa;
+}
+
+html,
+body {
+	background: var(--bg);
+	color: var(--text);
+}
+

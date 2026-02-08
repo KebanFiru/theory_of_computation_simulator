@@ -176,6 +176,24 @@ export function useDFAManager() {
     setDfaAlphabets(prev => ({ ...prev, [dfaName]: [...nextAlphabet] }));
   }, []);
 
+  const deleteDFAs = useCallback((names: string[]) => {
+    if (!names.length) return;
+    setSavedDFAs(prev => {
+      const next = { ...prev };
+      names.forEach(name => {
+        delete next[name];
+      });
+      return next;
+    });
+    setDfaAlphabets(prev => {
+      const next = { ...prev };
+      names.forEach(name => {
+        delete next[name];
+      });
+      return next;
+    });
+  }, []);
+
   return {
     states,
     setStates,
@@ -195,5 +213,6 @@ export function useDFAManager() {
     updateDfaAlphabet,
     restoreAlphabet,
     clearAlphabet,
+    deleteDFAs,
   };
 }

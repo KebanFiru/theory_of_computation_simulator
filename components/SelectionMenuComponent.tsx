@@ -19,13 +19,13 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
   const buttonClass = (active: boolean) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-lg text-base font-semibold transition-all shadow-sm border ${
       active
-        ? "bg-red-600 text-white border-red-500 shadow-red-200"
-        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+        ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)]"
+        : "bg-[var(--surface)] text-[var(--text-muted)] border-[var(--border)] hover:bg-[var(--surface-muted)]"
     }`;
 
   return(
     <>
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 w-[min(900px,95vw)] bg-white/95 backdrop-blur border border-gray-200 shadow-lg flex items-center justify-between px-5 py-4 z-50 rounded-2xl">
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 w-[min(900px,95vw)] bg-[var(--surface-overlay)] backdrop-blur border border-[var(--border)] shadow-lg flex items-center justify-between px-5 py-4 z-50 rounded-2xl">
         <div className="flex items-center gap-3">
           <button
             className={buttonClass(startingState)}
