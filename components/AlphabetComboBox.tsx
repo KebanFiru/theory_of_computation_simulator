@@ -33,8 +33,8 @@ export default function AlphabetComboBox({ alphabet, setAlphabet, ownerLabel, di
       <button
         className={`flex items-center gap-1 border rounded px-2 py-1 font-bold focus:outline-none ${
           disabled
-            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-            : "bg-white border-gray-300 text-red-600 hover:bg-red-50"
+            ? "bg-[var(--surface-muted)] border-[var(--border)] text-[var(--text-subtle)] cursor-not-allowed"
+            : "bg-[var(--surface)] border-[var(--border-strong)] text-[var(--accent)] hover:bg-[var(--surface-muted)]"
         }`}
         onClick={() => setExpanded(e => !e)}
         type="button"
@@ -45,14 +45,14 @@ export default function AlphabetComboBox({ alphabet, setAlphabet, ownerLabel, di
         {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
       {expanded && (
-        <div className="absolute left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 p-4 flex flex-col gap-3">
-          <div className="text-xs font-semibold text-gray-500">
-            Alphabet for: <span className="text-gray-800">{ownerLabel ?? "Unsaved FA"}</span>
+        <div className="absolute left-0 mt-2 w-72 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl z-50 p-4 flex flex-col gap-3">
+          <div className="text-xs font-semibold text-[var(--text-subtle)]">
+            Alphabet for: <span className="text-[var(--text)]">{ownerLabel ?? "Unsaved FA"}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <label className="text-xs font-semibold text-gray-600">Alphabet size</label>
+            <label className="text-xs font-semibold text-[var(--text-muted)]">Alphabet size</label>
             <input
-              className="w-20 rounded-lg border border-gray-300 px-2 py-1 text-black text-sm text-center"
+              className="w-20 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-muted)] px-2 py-1 text-[var(--text)] text-sm text-center"
               type="number"
               min={0}
               max={10}
@@ -68,12 +68,14 @@ export default function AlphabetComboBox({ alphabet, setAlphabet, ownerLabel, di
             />
           </div>
           <div className="grid grid-cols-5 gap-2">
-            {alphabet.length === 0 && <span className="text-gray-400 text-xs">No symbols</span>}
+            {alphabet.length === 0 && <span className="text-[var(--text-subtle)] text-xs">No symbols</span>}
             {alphabet.map((letter, index) => (
               <input
                 key={`alphabet-${index}`}
-                className={`rounded-lg border px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-red-400 ${
-                  disabled ? "border-gray-200 bg-gray-100 text-gray-400" : "border-gray-300 text-black"
+                className={`rounded-lg border px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
+                  disabled
+                    ? "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--text-subtle)]"
+                    : "border-[var(--border-strong)] bg-[var(--surface-muted)] text-[var(--text)]"
                 }`}
                 value={letter}
                 disabled={disabled}

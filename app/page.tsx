@@ -6,6 +6,7 @@ import ArrowInputFields from "../components/ArrowInputFields";
 import DFANameDialog from "../components/DFANameDialog";
 import DFATableDisplay from "../components/DFATableDisplay";
 import SelectionModeIndicator from "../components/SelectionModeIndicator";
+import ThemeToggle from "../components/ThemeToggle";
 import { useDFAManager } from "../hooks/useDFAManager";
 import { useCanvasInteraction } from "../hooks/useCanvasInteraction";
 import { useSelectionMode } from "../hooks/useSelectionMode";
@@ -31,6 +32,7 @@ export default function Canvas() {
   const [transitionSlots, setTransitionSlots] = useState<Record<string, number>>({});
   const [viewportTick, setViewportTick] = useState(0);
   const [roadSelection, setRoadSelection] = useState<number | null>(null);
+  const [selectedDFAName, setSelectedDFAName] = useState<string | null>(null);
 
   // Custom hooks
   const dfaManager = useDFAManager();
@@ -175,9 +177,75 @@ export default function Canvas() {
   }, [dfaManager]);
 
   // Keyboard shortcuts for delete and esc (always enabled)
+  const deleteDFAByNames = useCallback((names: string[]) => {
+    if (!names.length) return;
+    const boundsToRemove = names
+      .map(name => dfaManager.savedDFAs[name]?.bounds)
+      .filter(Boolean) as { x1: number; y1: number; x2: number; y2: number }[];
+
+    if (boundsToRemove.length > 0) {
+      const toRemove = new Set<number>();
+      dfaManager.states.forEach((st, index) => {
+        const hit = boundsToRemove.some(b => {
+          const minX = Math.min(b.x1, b.x2);
+          const maxX = Math.max(b.x1, b.x2);
+          const minY = Math.min(b.y1, b.y2);
+          const maxY = Math.max(b.y1, b.y2);
+          return st.x >= minX && st.x <= maxX && st.y >= minY && st.y <= maxY;
+        });
+        if (hit) toRemove.add(index);
+      });
+
+      if (toRemove.size > 0) {
+        const indexMap = new Map<number, number>();
+        const nextStates: State[] = [];
+        dfaManager.states.forEach((st, index) => {
+          if (toRemove.has(index)) return;
+          indexMap.set(index, nextStates.length);
+          nextStates.push(st);
+        });
+
+        dfaManager.setStates(nextStates);
+        dfaManager.setArrowPairs(prev =>
+          prev
+            .filter(pair => !toRemove.has(pair.from) && !toRemove.has(pair.to))
+            .map(pair => ({
+              ...pair,
+              from: indexMap.get(pair.from) ?? pair.from,
+              to: indexMap.get(pair.to) ?? pair.to
+            }))
+        );
+        dfaManager.setArrowSelection([]);
+      }
+    }
+
+    dfaManager.deleteDFAs(names);
+    dfaManager.clearAlphabet();
+    if (editingDFAName && names.includes(editingDFAName)) {
+      setEditMode(false);
+      setEditingDFAName(null);
+      dfaManager.setStates([]);
+      dfaManager.setArrowPairs([]);
+      dfaManager.setArrowSelection([]);
+      setTransitionSlots({});
+      dfaManager.clearAlphabet();
+    }
+    setSelectedDFAName(prev => (prev && names.includes(prev) ? null : prev));
+  }, [dfaManager, editingDFAName]);
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTypingTarget = !!target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (isTypingTarget && e.key !== "Escape") {
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
+        if (selectedDFAName) {
+          deleteDFAByNames([selectedDFAName]);
+          return;
+        }
         // Remove selected state or arrow
         if (dfaManager.arrowSelection.length === 1) {
           // Remove selected state
@@ -199,11 +267,16 @@ export default function Canvas() {
         if (selection.selectionMode) {
           selection.setSelectionMode(false);
         }
+        if (road || roadSelection !== null) {
+          setRoad(false);
+          setRoadSelection(null);
+          dfaManager.setArrowSelection([]);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [dfaManager, selection]);
+  }, [dfaManager, selection, road, roadSelection, selectedDFAName, deleteDFAByNames]);
 
   const handleCancelDialog = () => {
     setShowNameDialog(false);
@@ -289,6 +362,21 @@ export default function Canvas() {
 
     const canvasX = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
     const canvasY = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
+
+    // Select saved DFA by clicking inside its bounds
+    const hitSavedDFA = Object.entries(dfaManager.savedDFAs).find(([, data]) => {
+      const b = data.bounds;
+      const minX = Math.min(b.x1, b.x2);
+      const maxX = Math.max(b.x1, b.x2);
+      const minY = Math.min(b.y1, b.y2);
+      const maxY = Math.max(b.y1, b.y2);
+      return canvasX >= minX && canvasX <= maxX && canvasY >= minY && canvasY <= maxY;
+    });
+    if (hitSavedDFA) {
+      setSelectedDFAName(hitSavedDFA[0]);
+      return;
+    }
+    setSelectedDFAName(null);
 
     if (!road) {
       const hitRadius = 10;
@@ -413,6 +501,27 @@ export default function Canvas() {
     }
   };
 
+  const handleCanvasDoubleClick = (e: React.MouseEvent) => {
+    // Prevent double click actions when in selection mode or drawing selection
+    if (selection.selectionMode || selection.isDrawingSelection) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRef.current || !rect) return;
+
+    const canvasX = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
+    const canvasY = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
+
+    const clickedCircleIndex = dfaManager.states.findIndex(
+      circle => Math.hypot(circle.x - canvasX, circle.y - canvasY) <= circle.r
+    );
+
+    if (clickedCircleIndex !== -1) {
+      dfaManager.setArrowSelection([clickedCircleIndex]);
+      return;
+    }
+
+    dfaManager.setArrowSelection([]);
+  };
+
   // Ensure arrowPairs always has enough empty arrows for each (from, to) pair to match the transition limit
   React.useEffect(() => {
     // Only ensure arrow objects for (from, to) pairs that already exist in arrowPairs
@@ -463,10 +572,10 @@ export default function Canvas() {
   return (
     <>
       {editMode && editingDFAName && (
-        <div className="fixed top-4 right-4 bg-white/90 backdrop-blur border border-blue-200 rounded-xl px-4 py-2 z-50 shadow-lg">
-          <span className="mr-2 text-sm font-semibold text-blue-700">Editing DFA: <b>{editingDFAName}</b></span>
+        <div className="fixed top-4 right-20 bg-[var(--surface-overlay)] backdrop-blur border border-[var(--border)] rounded-xl px-4 py-2 z-50 shadow-lg">
+          <span className="mr-2 text-sm font-semibold text-[var(--info)]">Editing DFA: <b>{editingDFAName}</b></span>
           <button
-            className="ml-2 px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm font-semibold"
+            className="ml-2 px-3 py-1.5 bg-[var(--success)] text-white rounded-lg hover:bg-[var(--success-strong)] text-sm font-semibold"
             onClick={() => {
               if (editingDFAName) {
                 if (dfaManager.states.length === 0) {
@@ -516,6 +625,8 @@ export default function Canvas() {
         alphabetLocked={editMode ? false : false}
       />
 
+      <ThemeToggle />
+
       <DFACanvas
         ref={canvasRef}
         states={dfaManager.states}
@@ -523,6 +634,7 @@ export default function Canvas() {
         arrowSelection={dfaManager.arrowSelection}
         selectionRect={selection.selectionRect}
         savedDFAs={dfaManager.savedDFAs}
+        selectedDFAName={selectedDFAName}
         offset={canvasInteraction.offset}
         scale={canvasInteraction.scale}
         isDragging={canvasInteraction.isDragging}
@@ -535,6 +647,7 @@ export default function Canvas() {
         onMouseMove={onMouseMove}
         onWheel={canvasInteraction.onWheel}
         onClick={handleCanvasClick}
+        onDoubleClick={handleCanvasDoubleClick}
       />
 
       <ArrowInputFields
@@ -573,17 +686,19 @@ export default function Canvas() {
         scale={canvasInteraction.scale}
         offset={canvasInteraction.offset}
         canvasRef={canvasRef}
+        selectedDFAName={selectedDFAName}
+        onSelect={(name) => setSelectedDFAName(name)}
       />
 
       {toast && (
         <div className="fixed top-24 right-6 z-[60]">
           <div
-            className={`px-4 py-3 rounded-xl shadow-lg text-sm font-semibold border backdrop-blur bg-white/90 ${
+            className={`px-4 py-3 rounded-xl shadow-lg text-sm font-semibold border backdrop-blur bg-[var(--surface-overlay)] ${
               toast.type === "error"
-                ? "border-red-200 text-red-700"
+                ? "border-[var(--danger)] text-[var(--danger)]"
                 : toast.type === "success"
-                ? "border-green-200 text-green-700"
-                : "border-blue-200 text-blue-700"
+                ? "border-[var(--success)] text-[var(--success)]"
+                : "border-[var(--info)] text-[var(--info)]"
             }`}
           >
             {toast.message}

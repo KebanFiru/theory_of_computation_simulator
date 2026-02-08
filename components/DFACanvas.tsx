@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useEffect, forwardRef } from "react";
+import React, { useRef, useEffect, forwardRef, useState } from "react";
 import type { State , DFACanvasProps} from "../types/types";
 
 const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
@@ -8,6 +8,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
   arrowSelection,
   selectionRect,
   savedDFAs,
+  selectedDFAName,
   offset,
   scale,
   isDragging,
@@ -19,9 +20,17 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
   onMouseUp,
   onMouseMove,
   onWheel,
-  onClick
+  onClick,
+  onDoubleClick
 }, ref) => {
   const canvasRef = (ref as React.RefObject<HTMLCanvasElement>) || useRef<HTMLCanvasElement>(null);
+  const [themeTick, setThemeTick] = useState(0);
+
+  useEffect(() => {
+    const handleThemeChange = () => setThemeTick(tick => tick + 1);
+    window.addEventListener("theme-change", handleThemeChange);
+    return () => window.removeEventListener("theme-change", handleThemeChange);
+  }, []);
 
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -45,28 +54,46 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const rootStyles = getComputedStyle(document.documentElement);
+    const getVar = (name: string, fallback: string) =>
+      rootStyles.getPropertyValue(name).trim() || fallback;
+    const canvasBg = getVar("--canvas-bg", "#0b1220");
+    const canvasNode = getVar("--canvas-node", "#ffffff");
+    const canvasNodeSelected = getVar("--canvas-node-selected", "#2563eb");
+    const canvasNodeStroke = getVar("--canvas-node-stroke", "#0f172a");
+    const canvasText = getVar("--canvas-text", "#0f172a");
+    const canvasTextSelected = getVar("--canvas-text-selected", "#ffffff");
+    const selectionColor = getVar("--canvas-selection", "#ef4444");
+    const savedColor = getVar("--canvas-saved", "#22c55e");
+    const savedTextColor = getVar("--canvas-saved-text", "#16a34a");
+    const arrowColor = getVar("--canvas-arrow", "#374151");
+    const stateColors: Record<string, string> = {
+      red: getVar("--state-start", "#ef4444"),
+      green: getVar("--state-normal", "#22c55e"),
+      blue: getVar("--state-accept", "#3b82f6")
+    };
     ctx.setTransform(scale, 0, 0, scale, offset.x, offset.y);
     ctx.clearRect(-offset.x / scale, -offset.y / scale, canvas.width / scale, canvas.height / scale);
-    ctx.fillStyle = "#f8fafc";
+    ctx.fillStyle = canvasBg;
     ctx.fillRect(-offset.x / scale, -offset.y / scale, canvas.width / scale, canvas.height / scale);
 
     // Draw states
     states.forEach((state, index) => {
       const isSelected = arrowSelection.length === 1 && arrowSelection[0] === index;
-      const strokeColor = state.color ?? "#0f172a";
-      const fillColor = isSelected ? "#2563eb" : "#fefefe";
+      const strokeColor = state.color ? (stateColors[state.color] ?? state.color) : canvasNodeStroke;
+      const fillColor = isSelected ? canvasNodeSelected : canvasNode;
 
       ctx.save();
       ctx.beginPath();
       ctx.arc(state.x, state.y, state.r, 0, 2 * Math.PI);
-      ctx.shadowColor = "rgba(0,0,0,0.12)";
+      ctx.shadowColor = "rgba(0,0,0,0.6)";
       ctx.shadowBlur = 10;
       ctx.shadowOffsetY = 3;
       ctx.fillStyle = fillColor;
       ctx.fill();
       ctx.shadowColor = "transparent";
       ctx.lineWidth = isSelected ? 3 : 2;
-      ctx.strokeStyle = isSelected ? "#1d4ed8" : strokeColor;
+      ctx.strokeStyle = isSelected ? stateColors.blue ?? strokeColor : strokeColor;
       ctx.stroke();
       ctx.restore();
 
@@ -74,8 +101,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       if (state.color === "blue" && !isSelected) {
         ctx.beginPath();
         ctx.arc(state.x, state.y, state.r - 5, 0, 2 * Math.PI);
-        ctx.strokeStyle = "#2563eb";
-        ctx.strokeStyle = "#3b82f6";
+        ctx.strokeStyle = stateColors.blue ?? "#3b82f6";
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -83,7 +109,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       // Draw label
       ctx.save();
       ctx.font = "600 12px Inter, system-ui, sans-serif";
-      ctx.fillStyle = isSelected ? "#ffffff" : "#111827";
+      ctx.fillStyle = isSelected ? canvasTextSelected : canvasText;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(`q${index}`, state.x, state.y);
@@ -117,11 +143,11 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       
       // Draw forward arrows
       if (pair.from === pair.to) {
-        drawLoop(ctx, fromCircle);
+        drawLoop(ctx, fromCircle, arrowColor);
       } 
       else if (forwardArrows.length === 1 && reverseArrows.length === 0) {
         // Single unidirectional arrow - draw in center
-        drawArrow(ctx, fromCircle, toCircle);
+        drawArrow(ctx, fromCircle, toCircle, arrowColor);
       } 
       else if (forwardArrows.length >= 1 && reverseArrows.length > 0) {
         // Bidirectional arrows - use stable offset based on index order
@@ -135,11 +161,12 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         drawArrow(
           ctx,
           { x: fromCircle.x + forwardOffset.x, y: fromCircle.y + forwardOffset.y, r: fromCircle.r },
-          { x: toCircle.x + forwardOffset.x, y: toCircle.y + forwardOffset.y, r: toCircle.r }
+          { x: toCircle.x + forwardOffset.x, y: toCircle.y + forwardOffset.y, r: toCircle.r },
+          arrowColor
         );
       } else if (forwardArrows.length > 1) {
         // Multiple arrows - draw ONE arrow in center for all transitions
-        drawArrow(ctx, fromCircle, toCircle);
+        drawArrow(ctx, fromCircle, toCircle, arrowColor);
       }
       
       // Draw reverse arrows
@@ -154,14 +181,15 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         drawArrow(
           ctx,
           { x: toCircle.x + reverseOffset.x, y: toCircle.y + reverseOffset.y, r: toCircle.r },
-          { x: fromCircle.x + reverseOffset.x, y: fromCircle.y + reverseOffset.y, r: fromCircle.r }
+          { x: fromCircle.x + reverseOffset.x, y: fromCircle.y + reverseOffset.y, r: fromCircle.r },
+          arrowColor
         );
       }
     });
     
     // Draw selection rectangle if exists
     if (selectionRect) {
-      ctx.strokeStyle = "#ef4444";
+      ctx.strokeStyle = selectionColor;
       ctx.lineWidth = 2.5;
       ctx.setLineDash([5, 5]);
       ctx.strokeRect(
@@ -182,8 +210,9 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       if (bounds.x2 - bounds.x1 < 1 || bounds.y2 - bounds.y1 < 1) {
         return;
       }
-      ctx.strokeStyle = "#22c55e";
-      ctx.lineWidth = 2.5;
+      const isSelected = selectedDFAName === name;
+      ctx.strokeStyle = isSelected ? selectionColor : savedColor;
+      ctx.lineWidth = isSelected ? 3.5 : 2.5;
       ctx.setLineDash([10, 5]);
       ctx.strokeRect(
         bounds.x1,
@@ -195,12 +224,12 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       
       ctx.save();
       ctx.font = "600 14px Inter, system-ui, sans-serif";
-      ctx.fillStyle = "#16a34a";
+      ctx.fillStyle = savedTextColor;
       ctx.textAlign = "left";
       ctx.fillText(name, bounds.x1 + 5, bounds.y1 - 5);
       ctx.restore();
     });
-  }, [offset, scale, states, arrowPairs, arrowSelection, selectionRect, savedDFAs, renderTick]);
+  }, [offset, scale, states, arrowPairs, arrowSelection, selectionRect, savedDFAs, renderTick, themeTick]);
 
   function calculateOffsetMultiplier(idx: number, totalArrows: number): number {
     if (totalArrows === 1) return 0;
@@ -243,7 +272,8 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
   function drawArrow(
     ctx: CanvasRenderingContext2D,
     from: { x: number; y: number; r?: number },
-    to: { x: number; y: number; r?: number }
+    to: { x: number; y: number; r?: number },
+    color: string
   ) {
     const arrowHeadLength = 15;
     const fromR = from.r ?? 0;
@@ -262,7 +292,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.lineTo(endX, endY);
-    ctx.strokeStyle = "#374151";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2.2;
     ctx.stroke();
 
@@ -278,18 +308,22 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       endY - arrowHeadLength * Math.sin(angle + arrowAngle)
     );
     ctx.closePath();
-    ctx.fillStyle = "#374151";
+    ctx.fillStyle = color;
     ctx.fill();
   }
 
-  function drawLoop(ctx: CanvasRenderingContext2D, state: { x: number; y: number; r?: number }) {
+  function drawLoop(
+    ctx: CanvasRenderingContext2D,
+    state: { x: number; y: number; r?: number },
+    color: string
+  ) {
     const radius = (state.r ?? 0) + 12;
     const loopRadius = 16;
     const centerX = state.x;
     const centerY = state.y - radius;
 
     ctx.beginPath();
-    ctx.strokeStyle = "#374151";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 2.2;
     ctx.arc(centerX, centerY, loopRadius, Math.PI * 0.2, Math.PI * 1.8);
     ctx.stroke();
@@ -311,7 +345,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       endY - arrowHeadLength * Math.sin(angle + arrowAngle)
     );
     ctx.closePath();
-    ctx.fillStyle = "#374151";
+    ctx.fillStyle = color;
     ctx.fill();
   }
 
@@ -322,7 +356,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         width: "100vw",
         height: "100vh",
         display: "block",
-        background: "#fff",
+        background: "var(--canvas-bg)",
         cursor: startingState
           ? "crosshair"
           : isDragging
@@ -334,6 +368,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
           : "grab"
       }}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onMouseMove={onMouseMove}

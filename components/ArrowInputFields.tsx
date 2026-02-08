@@ -126,16 +126,16 @@ export default function ArrowInputFields({
                 height: 38,
                 zIndex: 100,
                 transform: "translate(-50%, -50%)",
-                background: "rgba(255,255,255,0.95)",
-                border: "1px solid #e5e7eb",
+                background: "var(--surface-overlay-strong)",
+                border: "1px solid var(--border-strong)",
                 borderRadius: 10,
                 textAlign: "center",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                boxShadow: "0 6px 16px var(--shadow-color)",
                 fontSize: 16,
                 fontWeight: 600,
-                color: "#111827"
+                color: "var(--text)"
               }}
-              className="focus:outline-none focus:ring-2 focus:ring-red-400"
+              className="focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               value={value}
               maxLength={1}
               onChange={e => {

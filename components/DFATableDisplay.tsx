@@ -7,7 +7,9 @@ export default function DFATableDisplay({
   savedDFAs,
   scale,
   offset,
-  canvasRef
+  canvasRef,
+  selectedDFAName,
+  onSelect
 }: DFATableDisplayProps) {
   if (Object.keys(savedDFAs).length === 0) return null;
 
@@ -227,6 +229,7 @@ export default function DFATableDisplay({
         const automatonRegex = generateRegex(automaton);
         const inputValue = testInputs[name] ?? "";
         const testResult = testInput(automaton, inputValue);
+        const isSelected = selectedDFAName === name;
 
         // Position table below the rectangle (at bottom-left corner)
         const tableX = bounds.x1 * scale + offset.x + rect.left;
@@ -235,26 +238,29 @@ export default function DFATableDisplay({
         return (
           <div
             key={name}
-            className="fixed bg-white p-3 rounded-lg shadow-lg border-2 border-green-500 text-xs"
+            className={`fixed bg-[var(--surface)] text-[var(--text)] p-3 rounded-lg shadow-lg border text-xs ${
+              isSelected ? "border-[var(--info)]" : "border-[var(--success)]"
+            }`}
             style={{
               left: tableX,
               top: tableY,
               maxWidth: "300px",
               zIndex: 40
             }}
+            onClick={() => onSelect(name)}
           >
             <div className="flex justify-between items-center mb-2">
               <div className="flex flex-col">
-                <h4 className="font-semibold text-green-600">{name}</h4>
+                <h4 className="font-semibold text-[var(--success)]">{name}</h4>
                 {automatonType !== "DFA" && (
-                  <span className="text-xs text-orange-600 font-semibold">Type: {automatonType}</span>
+                  <span className="text-xs text-[var(--warning)] font-semibold">Type: {automatonType}</span>
                 )}
                 {automatonType === "DFA" && (
-                  <span className="text-xs text-green-700 font-semibold">Type: DFA</span>
+                  <span className="text-xs text-[var(--success)] font-semibold">Type: DFA</span>
                 )}
               </div>
               <button
-                className="ml-2 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="ml-2 px-2 py-1 bg-[var(--surface-strong)] text-[var(--text)] rounded hover:bg-[var(--surface-muted)]"
                 onClick={() => {
                   // Custom event: trigger edit for this DFA
                   const event = new CustomEvent("editDFA", { detail: { name } });
@@ -262,7 +268,7 @@ export default function DFATableDisplay({
                 }}
               >Edit</button>
             </div>
-            <table className="border-collapse border border-gray-400 text-xs w-full">
+            <table className="border-collapse border border-[var(--border-strong)] text-xs w-full">
               <tbody>
                 {data.table.map((row, rowIndex) => (
                   <tr key={rowIndex}>
@@ -272,9 +278,9 @@ export default function DFATableDisplay({
                       return (
                         <td
                           key={cellIndex}
-                          className={`border border-gray-300 px-2 py-1 ${
-                            rowIndex === 0 ? "font-bold bg-gray-100" : ""
-                          } ${cellIndex === 0 ? "font-bold bg-gray-50" : ""} ${isAcceptState ? "text-blue-600 font-bold bg-blue-50" : ""}`}
+                          className={`border border-[var(--border-strong)] px-2 py-1 ${
+                            rowIndex === 0 ? "font-bold bg-[var(--surface-muted)]" : ""
+                          } ${cellIndex === 0 ? "font-bold bg-[var(--surface-muted)]" : ""} ${isAcceptState ? "text-[var(--info)] font-bold bg-[var(--info-soft)]" : ""}`}
                         >
                           {isAcceptState ? <span title="Accept State">★ {cell.replace(/\*$/, "")}</span> : cell}
                         </td>
@@ -285,10 +291,10 @@ export default function DFATableDisplay({
               </tbody>
             </table>
 
-            <div className="mt-3 border-t border-gray-200 pt-3">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Test strings (regex supported)</label>
+            <div className="mt-3 border-t border-[var(--border)] pt-3">
+              <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Test strings (regex supported)</label>
               <input
-                className="w-full rounded border border-gray-300 px-2 py-1 text-black text-xs"
+                className="w-full rounded border border-[var(--border-strong)] bg-[var(--surface-muted)] px-2 py-1 text-[var(--text)] text-xs"
                 value={inputValue}
                 onChange={e => setTestInputs(prev => ({ ...prev, [name]: e.target.value }))}
                 placeholder="Example: aaa or a*"
@@ -296,7 +302,7 @@ export default function DFATableDisplay({
               {testResult.status && (
                 <div
                   className={`mt-2 text-xs font-semibold ${
-                    testResult.status === "Valid" ? "text-green-600" : "text-red-600"
+                    testResult.status === "Valid" ? "text-[var(--success)]" : "text-[var(--danger)]"
                   }`}
                 >
                   {testResult.status}
@@ -305,10 +311,10 @@ export default function DFATableDisplay({
               )}
             </div>
 
-            <div className="mt-3 border-t border-gray-200 pt-3">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Automaton regex</label>
+            <div className="mt-3 border-t border-[var(--border)] pt-3">
+              <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Automaton regex</label>
               <textarea
-                className="w-full rounded border border-gray-300 px-2 py-1 text-black text-xs"
+                className="w-full rounded border border-[var(--border-strong)] bg-[var(--surface-muted)] px-2 py-1 text-[var(--text)] text-xs"
                 value={automatonRegex}
                 readOnly
                 rows={2}

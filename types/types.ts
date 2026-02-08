@@ -71,6 +71,7 @@ export interface DFACanvasProps {
     arrowSelection: number[];
     selectionRect: SelectionRect;
     savedDFAs: SavedDFAs;
+    selectedDFAName?: string | null;
     offset: Offset;
     scale: number;
     isDragging: boolean;
@@ -83,6 +84,7 @@ export interface DFACanvasProps {
     onMouseMove: (e: React.MouseEvent) => void;
     onWheel: (e: React.WheelEvent) => void;
     onClick: (e: React.MouseEvent) => void;
+    onDoubleClick: (e: React.MouseEvent) => void;
 }
 
 export interface ArrowInputFieldsProps {
@@ -110,6 +112,8 @@ export interface DFATableDisplayProps {
     scale: number;
     offset: Offset;
     canvasRef: React.RefObject<HTMLCanvasElement | null>;
+    selectedDFAName: string | null;
+    onSelect: (name: string | null) => void;
 }
 
 export interface SelectionModeIndicatorProps {
