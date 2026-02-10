@@ -11,8 +11,19 @@ export function useCanvasInteraction() {
 
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
-    setScale(prev => Math.max(0.1, prev + e.deltaY * -0.001));
-  }, []);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const prevScale = scale;
+    const nextScale = Math.max(0.1, prevScale + e.deltaY * -0.001);
+    if (nextScale === prevScale) return;
+    setScale(nextScale);
+    const scaleRatio = nextScale / prevScale;
+    setOffset(prev => ({
+      x: mouseX - (mouseX - prev.x) * scaleRatio,
+      y: mouseY - (mouseY - prev.y) * scaleRatio
+    }));
+  }, [scale]);
 
   return {
     offset,
