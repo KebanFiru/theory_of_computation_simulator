@@ -67,6 +67,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     const savedColor = getVar("--canvas-saved", "#22c55e");
     const savedTextColor = getVar("--canvas-saved-text", "#16a34a");
     const arrowColor = getVar("--canvas-arrow", "#374151");
+    const arrowSelectedColor = getVar("--canvas-arrow-selected", "#2563eb");
     const stateColors: Record<string, string> = {
       red: getVar("--state-start", "#ef4444"),
       green: getVar("--state-normal", "#22c55e"),
@@ -79,7 +80,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
 
     // Draw states
     states.forEach((state, index) => {
-      const isSelected = arrowSelection.length === 1 && arrowSelection[0] === index;
+      const isSelected = arrowSelection.includes(index);
       const strokeColor = state.color ? (stateColors[state.color] ?? state.color) : canvasNodeStroke;
       const fillColor = isSelected ? canvasNodeSelected : canvasNode;
 
@@ -142,12 +143,23 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       const reverseArrows = allArrowsBetween.filter(p => p.from === pair.to && p.to === pair.from);
       
       // Draw forward arrows
+      const isForwardSelected =
+        arrowSelection.length === 2 &&
+        arrowSelection[0] === pair.from &&
+        arrowSelection[1] === pair.to;
+      const isReverseSelected =
+        arrowSelection.length === 2 &&
+        arrowSelection[0] === pair.to &&
+        arrowSelection[1] === pair.from;
+      const forwardColor = isForwardSelected ? arrowSelectedColor : arrowColor;
+      const reverseColor = isReverseSelected ? arrowSelectedColor : arrowColor;
+
       if (pair.from === pair.to) {
-        drawLoop(ctx, fromCircle, arrowColor);
+        drawLoop(ctx, fromCircle, forwardColor);
       } 
       else if (forwardArrows.length === 1 && reverseArrows.length === 0) {
         // Single unidirectional arrow - draw in center
-        drawArrow(ctx, fromCircle, toCircle, arrowColor);
+        drawArrow(ctx, fromCircle, toCircle, forwardColor);
       } 
       else if (forwardArrows.length >= 1 && reverseArrows.length > 0) {
         // Bidirectional arrows - use stable offset based on index order
@@ -162,11 +174,11 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
           ctx,
           { x: fromCircle.x + forwardOffset.x, y: fromCircle.y + forwardOffset.y, r: fromCircle.r },
           { x: toCircle.x + forwardOffset.x, y: toCircle.y + forwardOffset.y, r: toCircle.r },
-          arrowColor
+          forwardColor
         );
       } else if (forwardArrows.length > 1) {
         // Multiple arrows - draw ONE arrow in center for all transitions
-        drawArrow(ctx, fromCircle, toCircle, arrowColor);
+        drawArrow(ctx, fromCircle, toCircle, forwardColor);
       }
       
       // Draw reverse arrows
@@ -182,7 +194,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
           ctx,
           { x: toCircle.x + reverseOffset.x, y: toCircle.y + reverseOffset.y, r: toCircle.r },
           { x: fromCircle.x + reverseOffset.x, y: fromCircle.y + reverseOffset.y, r: fromCircle.r },
-          arrowColor
+          reverseColor
         );
       }
     });

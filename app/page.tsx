@@ -363,20 +363,24 @@ export default function Canvas() {
     const canvasX = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
     const canvasY = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
 
-    // Select saved DFA by clicking inside its bounds
-    const hitSavedDFA = Object.entries(dfaManager.savedDFAs).find(([, data]) => {
-      const b = data.bounds;
-      const minX = Math.min(b.x1, b.x2);
-      const maxX = Math.max(b.x1, b.x2);
-      const minY = Math.min(b.y1, b.y2);
-      const maxY = Math.max(b.y1, b.y2);
-      return canvasX >= minX && canvasX <= maxX && canvasY >= minY && canvasY <= maxY;
-    });
-    if (hitSavedDFA) {
-      setSelectedDFAName(hitSavedDFA[0]);
-      return;
+    // Select saved DFA by clicking inside its bounds (disabled while editing)
+    if (!editMode) {
+      const hitSavedDFA = Object.entries(dfaManager.savedDFAs).find(([, data]) => {
+        const b = data.bounds;
+        const minX = Math.min(b.x1, b.x2);
+        const maxX = Math.max(b.x1, b.x2);
+        const minY = Math.min(b.y1, b.y2);
+        const maxY = Math.max(b.y1, b.y2);
+        return canvasX >= minX && canvasX <= maxX && canvasY >= minY && canvasY <= maxY;
+      });
+      if (hitSavedDFA) {
+        setSelectedDFAName(hitSavedDFA[0]);
+        return;
+      }
     }
-    setSelectedDFAName(null);
+    if (selectedDFAName) {
+      setSelectedDFAName(null);
+    }
 
     if (!road) {
       const hitRadius = 10;
@@ -467,11 +471,12 @@ export default function Canvas() {
           return;
         }
 
-        if (arrowsBetween.length >= (transitionSlots[slotKey] ?? dfaManager.alphabet.length)) {
+        const transitionLimit = transitionSlots[slotKey] ?? dfaManager.alphabet.length;
+        if (arrowsBetween.length >= transitionLimit) {
           showToast("You can't add more arrows than the transition limit.", "error");
           return;
         }
-
+        dfaManager.setArrowPairs(pairs => [...pairs, { from, to }]);
         setRoad(false);
         return;
       }
