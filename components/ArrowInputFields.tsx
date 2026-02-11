@@ -15,20 +15,41 @@ export default function ArrowInputFields({
 }: ArrowInputFieldsProps) {
   if (showNameDialog) return null;
 
+  const calculateParallelOffset = (
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    isForwardDirection: boolean
+  ) => {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const length = Math.hypot(dx, dy);
+    if (length === 0) return { x: 0, y: 0 };
+    const offsetDistance = 10;
+    const perpX = -dy / length;
+    const perpY = dx / length;
+    const sign = isForwardDirection ? 1 : -1;
+    return {
+      x: perpX * offsetDistance * sign,
+      y: perpY * offsetDistance * sign
+    };
+  };
+
   // Deduplicate arrowPairs so only one per direction (from, to) is rendered
   const uniqueArrowPairs = React.useMemo(() => {
     const seen = new Set<string>();
-    return arrowPairs.filter((pair) => {
-      const key = `${pair.from}-${pair.to}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    return arrowPairs
+      .map((pair, idx) => ({ ...pair, originalIndex: idx }))
+      .filter((pair) => {
+        const key = `${pair.from}-${pair.to}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
   }, [arrowPairs]);
 
   return (
     <>
-      {uniqueArrowPairs.map((pair, index) => {
+      {uniqueArrowPairs.map((pair) => {
         const fromCircle = states[pair.from];
         const toCircle = states[pair.to];
         if (!fromCircle || !toCircle) return null;
@@ -38,46 +59,12 @@ export default function ArrowInputFields({
           .map((p, idx) => ({ ...p, originalIndex: idx }))
           .filter(p => p.from === pair.from && p.to === pair.to);
         
-        const arrIdx = sameDirectionArrows.findIndex(p => p.originalIndex === index);
-        const totalArrows = sameDirectionArrows.length;
-
         // Check if there are reverse arrows (bidirectional)
         const hasReverseArrows = arrowPairs.some(
           p => p.from === pair.to && p.to === pair.from && pair.from !== pair.to
         );
 
-        let offsetMultiplier = 0;
-        if (totalArrows === 1 && !hasReverseArrows) {
-          offsetMultiplier = 0;
-        } 
-        else if (totalArrows === 1 && hasReverseArrows) {
-          // Single arrow with bidirectional - place it above the line
-          offsetMultiplier = 1;
-        } 
-        else if (totalArrows > 1) {
-          // Multiple arrows in same direction - spread them out
-          if (totalArrows % 2 === 1) {
-            const middleIndex = Math.floor(totalArrows / 2);
-            if (arrIdx === middleIndex) {
-              offsetMultiplier = 0;
-            } 
-            else if (arrIdx < middleIndex) {
-              offsetMultiplier = -(middleIndex - arrIdx);
-            } 
-            else {
-              offsetMultiplier = arrIdx - middleIndex;
-            }
-          }
-          else {
-            const halfPoint = totalArrows / 2;
-            if (arrIdx < halfPoint) {
-              offsetMultiplier = -(halfPoint - arrIdx) + 0.5;
-            } 
-            else {
-              offsetMultiplier = arrIdx - halfPoint + 0.5;
-            }
-          }
-        }
+        const offsetMultiplier = 0;
 
         let midX = (fromCircle.x + toCircle.x) / 2;
         let midY = (fromCircle.y + toCircle.y) / 2;
@@ -91,6 +78,22 @@ export default function ArrowInputFields({
         const dx = toCircle.x - fromCircle.x;
         const dy = toCircle.y - fromCircle.y;
         const length = Math.hypot(dx, dy);
+
+        if (hasReverseArrows && pair.from !== pair.to) {
+          const minIndex = Math.min(pair.from, pair.to);
+          const maxIndex = Math.max(pair.from, pair.to);
+          const baseFrom = states[minIndex];
+          const baseTo = states[maxIndex];
+          if (baseFrom && baseTo) {
+            const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+            const isForward = pair.from === minIndex;
+            const appliedOffset = isForward
+              ? baseOffset
+              : { x: -baseOffset.x, y: -baseOffset.y };
+            midX += appliedOffset.x;
+            midY += appliedOffset.y;
+          }
+        }
 
         if (length > 0 && offsetMultiplier !== 0) {
           const offsetDistance = 15;
@@ -106,8 +109,7 @@ export default function ArrowInputFields({
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return null;
         const screenX = midX * scale + offset.x + rect.left;
-        const stackOffset = index % 2 === 0 ? -18 : 18;
-        const screenY = midY * scale + offset.y + rect.top + stackOffset;
+        const screenY = midY * scale + offset.y + rect.top;
 
         const slotCount = transitionSlots[`${pair.from}-${pair.to}`] ?? alphabet.length;
         return Array.from({ length: slotCount }).map((_, slotIdx) => {

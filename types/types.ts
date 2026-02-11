@@ -72,6 +72,9 @@ export interface DFACanvasProps {
     selectionRect: SelectionRect;
     savedDFAs: SavedDFAs;
     selectedDFAName?: string | null;
+    previewStates?: State[] | null;
+    previewArrowPairs?: ArrowPair[] | null;
+    previewPosition?: { x: number; y: number } | null;
     offset: Offset;
     scale: number;
     isDragging: boolean;

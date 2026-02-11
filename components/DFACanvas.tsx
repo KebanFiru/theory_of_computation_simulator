@@ -9,6 +9,9 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
   selectionRect,
   savedDFAs,
   selectedDFAName,
+  previewStates,
+  previewArrowPairs,
+  previewPosition,
   offset,
   scale,
   isDragging,
@@ -68,6 +71,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     const savedTextColor = getVar("--canvas-saved-text", "#16a34a");
     const arrowColor = getVar("--canvas-arrow", "#374151");
     const arrowSelectedColor = getVar("--canvas-arrow-selected", "#2563eb");
+    const previewColor = getVar("--canvas-preview", "#94a3b8");
     const stateColors: Record<string, string> = {
       red: getVar("--state-start", "#ef4444"),
       green: getVar("--state-normal", "#22c55e"),
@@ -241,7 +245,121 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       ctx.fillText(name, bounds.x1 + 5, bounds.y1 - 5);
       ctx.restore();
     });
-  }, [offset, scale, states, arrowPairs, arrowSelection, selectionRect, savedDFAs, renderTick, themeTick]);
+
+    Object.values(savedDFAs).forEach((data) => {
+      const snapshot = data.snapshot;
+      if (!snapshot?.states?.length) return;
+
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+
+      snapshot.arrowPairs?.forEach(pair => {
+        const fromCircle = snapshot.states[pair.from];
+        const toCircle = snapshot.states[pair.to];
+        if (!fromCircle || !toCircle) return;
+        if (pair.from === pair.to) {
+          drawLoop(ctx, fromCircle, arrowColor);
+          return;
+        }
+        drawArrow(ctx, fromCircle, toCircle, arrowColor);
+      });
+
+      snapshot.states.forEach((state, index) => {
+        const strokeColor = state.color ? (stateColors[state.color] ?? canvasNodeStroke) : canvasNodeStroke;
+        ctx.beginPath();
+        ctx.arc(state.x, state.y, state.r, 0, 2 * Math.PI);
+        ctx.fillStyle = canvasNode;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2;
+        ctx.fill();
+        ctx.stroke();
+
+        if (state.color === "blue") {
+          ctx.beginPath();
+          ctx.arc(state.x, state.y, state.r - 5, 0, 2 * Math.PI);
+          ctx.strokeStyle = stateColors.blue ?? "#3b82f6";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        ctx.save();
+        ctx.font = "600 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = canvasText;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`q${index}`, state.x, state.y);
+        ctx.restore();
+      });
+
+      ctx.restore();
+    });
+
+    if (previewStates && previewArrowPairs && previewPosition) {
+      ctx.save();
+      ctx.globalAlpha = 0.55;
+
+      previewStates.forEach((state, index) => {
+        const x = state.x + previewPosition.x;
+        const y = state.y + previewPosition.y;
+        const strokeColor = state.color ? (stateColors[state.color] ?? previewColor) : previewColor;
+
+        ctx.beginPath();
+        ctx.arc(x, y, state.r, 0, 2 * Math.PI);
+        ctx.fillStyle = canvasNode;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 2;
+        ctx.fill();
+        ctx.stroke();
+
+        if (state.color === "blue") {
+          ctx.beginPath();
+          ctx.arc(x, y, state.r - 5, 0, 2 * Math.PI);
+          ctx.strokeStyle = stateColors.blue ?? "#3b82f6";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        ctx.save();
+        ctx.font = "600 12px Inter, system-ui, sans-serif";
+        ctx.fillStyle = canvasText;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(`q${index}`, x, y);
+        ctx.restore();
+      });
+
+      previewArrowPairs.forEach(pair => {
+        const fromCircle = previewStates[pair.from];
+        const toCircle = previewStates[pair.to];
+        if (!fromCircle || !toCircle) return;
+        if (pair.from === pair.to) {
+          drawLoop(ctx, { x: fromCircle.x + previewPosition.x, y: fromCircle.y + previewPosition.y, r: fromCircle.r }, previewColor);
+          return;
+        }
+        drawArrow(
+          ctx,
+          { x: fromCircle.x + previewPosition.x, y: fromCircle.y + previewPosition.y, r: fromCircle.r },
+          { x: toCircle.x + previewPosition.x, y: toCircle.y + previewPosition.y, r: toCircle.r },
+          previewColor
+        );
+      });
+
+      ctx.restore();
+    }
+  }, [
+    offset,
+    scale,
+    states,
+    arrowPairs,
+    arrowSelection,
+    selectionRect,
+    savedDFAs,
+    renderTick,
+    themeTick,
+    previewStates,
+    previewArrowPairs,
+    previewPosition
+  ]);
 
   function calculateOffsetMultiplier(idx: number, totalArrows: number): number {
     if (totalArrows === 1) return 0;

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Moon, Sun } from "lucide-react";
+import type { ThemeToggleProps } from "../types/ui";
 
 type Theme = "light" | "dark";
 
@@ -21,7 +22,7 @@ const getInitialTheme = (): Theme => {
   return prefersDark ? "dark" : "light";
 };
 
-export default function ThemeToggle() {
+export default function ThemeToggle({ mode = "floating" }: ThemeToggleProps) {
   const [theme, setTheme] = React.useState<Theme>("dark");
 
   React.useEffect(() => {
@@ -41,7 +42,11 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      className="fixed top-4 left-4 z-[70] flex h-12 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-overlay)] px-4 text-sm font-semibold text-[var(--text)] shadow-lg hover:bg-[var(--surface-muted)]"
+      className={
+        mode === "floating"
+          ? "fixed top-4 left-4 z-[70] flex h-12 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-overlay)] px-4 text-sm font-semibold text-[var(--text)] shadow-lg hover:bg-[var(--surface-muted)]"
+          : "flex h-11 w-full items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
+      }
       title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
       aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >

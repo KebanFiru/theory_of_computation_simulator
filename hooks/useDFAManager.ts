@@ -1,6 +1,8 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { State, SavedDFAs } from "../types/types";
+
+const STORAGE_KEY = "cts-saved-dfas-v1";
 
 export function useDFAManager() {
   const [states, setStates] = useState<State[]>([]);
@@ -10,6 +12,33 @@ export function useDFAManager() {
   const [savedDFAs, setSavedDFAs] = useState<SavedDFAs>({});
   const [dfaAlphabets, setDfaAlphabets] = useState<{ [name: string]: string[] }>({});
   const [transitionTable, setTransitionTable] = useState<string[][]>([]);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as { savedDFAs?: SavedDFAs; dfaAlphabets?: { [name: string]: string[] } };
+        if (parsed.savedDFAs) {
+          setSavedDFAs(parsed.savedDFAs);
+        }
+        if (parsed.dfaAlphabets) {
+          setDfaAlphabets(parsed.dfaAlphabets);
+        }
+      } catch {
+        // Ignore invalid stored data
+      }
+    }
+    setIsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!isHydrated) return;
+    const payload = JSON.stringify({ savedDFAs, dfaAlphabets });
+    window.localStorage.setItem(STORAGE_KEY, payload);
+  }, [savedDFAs, dfaAlphabets, isHydrated]);
 
   // Restore alphabet for a DFA
   const restoreAlphabet = useCallback((dfaName: string) => {
@@ -210,6 +239,7 @@ export function useDFAManager() {
     saveDFA,
     updateArrowLabel,
     dfaAlphabets,
+    setDfaAlphabets,
     updateDfaAlphabet,
     restoreAlphabet,
     clearAlphabet,

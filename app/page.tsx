@@ -6,11 +6,11 @@ import ArrowInputFields from "../components/ArrowInputFields";
 import DFANameDialog from "../components/DFANameDialog";
 import DFATableDisplay from "../components/DFATableDisplay";
 import SelectionModeIndicator from "../components/SelectionModeIndicator";
-import ThemeToggle from "../components/ThemeToggle";
+import HamburgerMenu from "../components/HamburgerMenu";
 import { useDFAManager } from "../hooks/useDFAManager";
 import { useCanvasInteraction } from "../hooks/useCanvasInteraction";
 import { useSelectionMode } from "../hooks/useSelectionMode";
-import type { State } from "../types/types";
+import type { ArrowPair, State } from "../types/types";
 
 export default function Canvas() {
   // Force update for DFATableDisplay
@@ -33,6 +33,14 @@ export default function Canvas() {
   const [viewportTick, setViewportTick] = useState(0);
   const [roadSelection, setRoadSelection] = useState<number | null>(null);
   const [selectedDFAName, setSelectedDFAName] = useState<string | null>(null);
+  const [importPreview, setImportPreview] = useState<{
+    name: string;
+    alphabet: string[];
+    states: State[];
+    arrowPairs: ArrowPair[];
+  } | null>(null);
+  const [importCursor, setImportCursor] = useState<{ x: number; y: number } | null>(null);
+  const [lastCanvasPos, setLastCanvasPos] = useState<{ x: number; y: number } | null>(null);
 
   // Custom hooks
   const dfaManager = useDFAManager();
@@ -99,12 +107,142 @@ export default function Canvas() {
     }
   }, [finalize, selection, showToast]);
 
+  const buildImportLayout = useCallback((stateCount: number, colors: Array<string | null>) => {
+    const radius = stateCount > 1 ? 140 : 0;
+    const step = stateCount > 0 ? (Math.PI * 2) / stateCount : 0;
+    return Array.from({ length: stateCount }).map((_, index) => {
+      const angle = step * index - Math.PI / 2;
+      return {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius,
+        r: 20,
+        color: colors[index] ?? "green",
+        id: Date.now() + Math.random() + index
+      } as State;
+    });
+  }, []);
+
+  const handleExportSelected = useCallback(() => {
+    if (!selectedDFAName) {
+      showToast("Select an FA to export.", "info");
+      return;
+    }
+    const dfa = dfaManager.savedDFAs[selectedDFAName];
+    if (!dfa) {
+      showToast("Selected FA not found.", "error");
+      return;
+    }
+    const sanitizedSnapshotStates = dfa.snapshot?.states?.map(state => ({
+      color: state.color,
+      id: state.id
+    })) ?? [];
+    const sanitizedDfa = {
+      table: dfa.table,
+      snapshot: {
+        states: sanitizedSnapshotStates,
+        arrowPairs: dfa.snapshot?.arrowPairs ?? []
+      }
+    };
+    const alphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? [];
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      items: [
+        {
+          name: selectedDFAName,
+          alphabet,
+          dfa: sanitizedDfa
+        }
+      ]
+    };
+    const safeName = selectedDFAName.replace(/[^a-z0-9-_]+/gi, "-").replace(/^-+|-+$/g, "");
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `fa-${safeName || "export"}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast("Exported selected FA.", "success");
+  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, selectedDFAName, showToast]);
+
+  const handleImportJson = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? "");
+        const parsed = JSON.parse(text);
+        const items = Array.isArray(parsed?.items)
+          ? parsed.items
+          : Array.isArray(parsed)
+          ? parsed
+          : parsed?.name && parsed?.dfa
+          ? [parsed]
+          : [];
+
+        if (items.length === 0) {
+          showToast("No FA data found in JSON.", "error");
+          return;
+        }
+
+        const item = items[0];
+        const name = String(item?.name ?? "Imported FA").trim() || "Imported FA";
+        const dfa = item?.dfa;
+        const alphabet = Array.isArray(item?.alphabet) ? item.alphabet.map(String) : [];
+
+        if (!dfa?.table && !dfa?.snapshot) {
+          showToast("No valid FA data found in JSON.", "error");
+          return;
+        }
+
+        const snapshotStates = Array.isArray(dfa?.snapshot?.states) ? dfa.snapshot.states : [];
+        const snapshotPairs = Array.isArray(dfa?.snapshot?.arrowPairs) ? dfa.snapshot.arrowPairs : [];
+        const rowLabels = Array.isArray(dfa?.table)
+          ? dfa.table.slice(1).map((row: string[]) => String(row?.[0] ?? ""))
+          : [];
+        const stateCount = snapshotStates.length || rowLabels.length;
+
+        if (stateCount === 0) {
+          showToast("No state data found in JSON.", "error");
+          return;
+        }
+
+        const colors = Array.from({ length: stateCount }).map((_, index) => {
+          const snapshotColor = snapshotStates[index]?.color;
+          if (snapshotColor) return snapshotColor;
+          const label = rowLabels[index] ?? "";
+          if (/\*$/.test(label)) return "blue";
+          if (index === 0) return "red";
+          return "green";
+        });
+
+        const previewStates = buildImportLayout(stateCount, colors);
+        const previewPairs = snapshotPairs.length
+          ? snapshotPairs.map((pair: ArrowPair) => ({ ...pair }))
+          : [];
+
+        setImportPreview({
+          name,
+          alphabet,
+          states: previewStates,
+          arrowPairs: previewPairs
+        });
+        setImportCursor(lastCanvasPos ?? { x: 0, y: 0 });
+        showToast("Move the mouse and click to place the FA.", "info");
+      } catch {
+        showToast("Invalid JSON file.", "error");
+      }
+    };
+    reader.readAsText(file);
+  }, [buildImportLayout, lastCanvasPos, showToast]);
+
   useEffect(() => {
     const handleViewportChange = () => {
       forceUpdate();
       setViewportTick(tick => tick + 1);
     };
 
+    handleViewportChange();
     window.addEventListener("resize", handleViewportChange);
     window.addEventListener("orientationchange", handleViewportChange);
     window.visualViewport?.addEventListener("resize", handleViewportChange);
@@ -260,6 +398,11 @@ export default function Canvas() {
           dfaManager.setArrowSelection([]);
         }
       } else if (e.key === "Escape") {
+        if (importPreview) {
+          setImportPreview(null);
+          setImportCursor(null);
+          return;
+        }
         // Abort drawing selection rectangle and exit selection mode
         if (selection.isDrawingSelection) {
           selection.clearSelection();
@@ -322,24 +465,27 @@ export default function Canvas() {
   };
 
   const onMouseMove = (e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRef.current || !rect) return;
+    const cursorX = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
+    const cursorY = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
+    setLastCanvasPos({ x: cursorX, y: cursorY });
+
+    if (importPreview) {
+      setImportCursor({ x: cursorX, y: cursorY });
+      return;
+    }
+
     if (selection.isDrawingSelection && selection.selectionStart) {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!canvasRef.current || !rect) return;
-      const x = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
-      const y = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
-      selection.updateSelection(x, y);
+      selection.updateSelection(cursorX, cursorY);
       return;
     }
 
     if (canvasInteraction.draggedCircle !== null && canvasInteraction.dragOffset) {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!canvasRef.current || !rect) return;
-      const x = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
-      const y = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
       dfaManager.setStates(prev =>
         prev.map((c, i) =>
           i === canvasInteraction.draggedCircle
-            ? { ...c, x: x - canvasInteraction.dragOffset!.x, y: y - canvasInteraction.dragOffset!.y }
+            ? { ...c, x: cursorX - canvasInteraction.dragOffset!.x, y: cursorY - canvasInteraction.dragOffset!.y }
             : c
         )
       );
@@ -362,6 +508,49 @@ export default function Canvas() {
 
     const canvasX = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
     const canvasY = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
+
+    if (importPreview && importCursor) {
+      const indexOffset = dfaManager.states.length;
+      const placedStates = importPreview.states.map((state, idx) => ({
+        ...state,
+        x: state.x + importCursor.x,
+        y: state.y + importCursor.y,
+        r: 20,
+        id: Date.now() + Math.random() + idx
+      }));
+      const placedPairs = importPreview.arrowPairs.map(pair => ({
+        ...pair,
+        from: pair.from + indexOffset,
+        to: pair.to + indexOffset
+      }));
+
+      dfaManager.setStates(prev => [...prev, ...placedStates]);
+      dfaManager.setArrowPairs(prev => [...prev, ...placedPairs]);
+      setTransitionSlots(prev => {
+        const next = { ...prev };
+        placedPairs.forEach(pair => {
+          const key = `${pair.from}-${pair.to}`;
+          next[key] = (next[key] ?? 0) + 1;
+        });
+        return next;
+      });
+
+      if (importPreview.alphabet.length > 0) {
+        dfaManager.setAlphabet(prev => {
+          if (prev.length === 0) return [...importPreview.alphabet];
+          const merged = [...prev];
+          importPreview.alphabet.forEach(symbol => {
+            if (!merged.includes(symbol)) merged.push(symbol);
+          });
+          return merged;
+        });
+      }
+
+      setImportPreview(null);
+      setImportCursor(null);
+      showToast(`Placed ${importPreview.name}.`, "success");
+      return;
+    }
 
     // Select saved DFA by clicking inside its bounds (disabled while editing)
     if (!editMode) {
@@ -630,7 +819,10 @@ export default function Canvas() {
         alphabetLocked={editMode ? false : false}
       />
 
-      <ThemeToggle />
+      <HamburgerMenu
+        onExportSelected={handleExportSelected}
+        onImportJson={handleImportJson}
+      />
 
       <DFACanvas
         ref={canvasRef}
@@ -640,6 +832,9 @@ export default function Canvas() {
         selectionRect={selection.selectionRect}
         savedDFAs={dfaManager.savedDFAs}
         selectedDFAName={selectedDFAName}
+        previewStates={importPreview?.states ?? null}
+        previewArrowPairs={importPreview?.arrowPairs ?? null}
+        previewPosition={importCursor}
         offset={canvasInteraction.offset}
         scale={canvasInteraction.scale}
         isDragging={canvasInteraction.isDragging}
