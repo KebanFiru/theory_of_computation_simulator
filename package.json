@@ -9,16 +9,16 @@
   },
   "dependencies": {
     "lucide-react": "^0.554.0",
-    "next": "16.0.4",
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^20.19.33",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
   }
 }
