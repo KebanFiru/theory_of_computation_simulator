@@ -2,79 +2,159 @@
 
 import React from 'react';
 import AlphabetComboBox from './AlphabetComboBox';
-import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot } from 'lucide-react';
+import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot, BrainCircuit, ShieldCheck, ShieldX, Workflow } from 'lucide-react';
 
-import type { SelectionMenuType } from '../types/types';  
+import type { SelectionMenuProps } from '../types/ui';  
 
-type Props = SelectionMenuType & {
-  alphabet: string[];
-  setAlphabet: (a: string[]) => void;
-  acceptState: boolean;
-  setAcceptState: (a: boolean) => void;
-  alphabetOwnerLabel?: string;
-  alphabetLocked?: boolean;
-};
+export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, tmFinalize, setTmFinalize, acceptState, setAcceptState, tmStateMode, setTmStateMode, tmAcceptMode, setTmAcceptMode, tmRejectMode, setTmRejectMode, tmTransitionMode, setTmTransitionMode, alphabetOwnerLabel, alphabetLocked}: SelectionMenuProps){
+  const [activeParent, setActiveParent] = React.useState<"FA" | "TM">("FA");
 
-export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, acceptState, setAcceptState, alphabetOwnerLabel, alphabetLocked}: Props){
   const buttonClass = (active: boolean) =>
-    `flex items-center gap-2 px-4 py-2.5 rounded-lg text-base font-semibold transition-all shadow-sm border ${
+    `inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all border whitespace-nowrap ${
       active
-        ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)]"
+        ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)] shadow-md"
         : "bg-[var(--surface)] text-[var(--text-muted)] border-[var(--border)] hover:bg-[var(--surface-muted)]"
+    }`;
+
+  const parentButtonClass = (active: boolean) =>
+    `px-4 py-2 rounded-xl text-xs font-bold tracking-wide border transition-all ${
+      active
+        ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)] shadow"
+        : "bg-[var(--surface)] text-[var(--text-subtle)] border-[var(--border)] hover:bg-[var(--surface-muted)]"
     }`;
 
   return(
     <>
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 w-[min(900px,95vw)] bg-[var(--surface-overlay)] backdrop-blur border border-[var(--border)] shadow-lg flex items-center justify-between px-5 py-4 z-50 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <button
-            className={buttonClass(startingState)}
-            onClick={() => setStartgingState(!startingState)}
-            title="Add start state"
-          >
-            <CircleArrowRight size={18} />
-            <span className="hidden sm:inline">Start</span>
-          </button>
-          <button
-            className={buttonClass(state)}
-            onClick={() => setState(!state)}
-            title="Add state"
-          >
-            <Circle size={18} />
-            <span className="hidden sm:inline">State</span>
-          </button>
-          <button
-            className={buttonClass(acceptState)}
-            onClick={() => setAcceptState(!acceptState)}
-            title="Add accept state"
-          >
-            <CircleDot size={18} />
-            <span className="hidden sm:inline">Accept</span>
-          </button>
-          <button
-            className={buttonClass(road)}
-            onClick={() => setRoad(!road)}
-            title="Add transition"
-          >
-            <MoveRightIcon size={18} />
-            <span className="hidden sm:inline">Transition</span>
-          </button>
-          <button
-            className={buttonClass(finalize)}
-            onClick={() => setFinalize(!finalize)}
-            title="Finalize DFA"
-          >
-            <Square size={18} />
-            <span className="hidden sm:inline">Finalize</span>
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <AlphabetComboBox
-            alphabet={alphabet}
-            setAlphabet={setAlphabet}
-            ownerLabel={alphabetOwnerLabel}
-            disabled={alphabetLocked}
-          />
+      <div className="fixed top-3 left-1/2 transform -translate-x-1/2  bg-[var(--surface-overlay)] backdrop-blur border border-[var(--border)] shadow-xl z-50 rounded-2xl px-3 py-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap xl:flex-nowrap">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-3 pr-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5 w-fit">
+                  <button
+                    className={parentButtonClass(activeParent === "FA")}
+                    onClick={() => setActiveParent("FA")}
+                    title="Show FA tools"
+                  >
+                    FA
+                  </button>
+                  <button
+                    className={parentButtonClass(activeParent === "TM")}
+                    onClick={() => setActiveParent("TM")}
+                    title="Show TM tools"
+                  >
+                    TM
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-2">
+                  {alphabetOwnerLabel && (
+                    <span className="hidden md:inline text-xs font-semibold text-[var(--text-subtle)]">
+                      {alphabetOwnerLabel}
+                    </span>
+                  )}
+                  {alphabetOwnerLabel && <div className="h-5 w-px bg-[var(--border)] hidden md:block" />}
+                  <AlphabetComboBox
+                    alphabet={alphabet}
+                    setAlphabet={setAlphabet}
+                    ownerLabel={alphabetOwnerLabel}
+                    disabled={alphabetLocked}
+                  />
+                </div>
+              </div>
+
+              {activeParent === "FA" && (
+                <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5">
+                  <button
+                    className={buttonClass(startingState)}
+                    onClick={() => setStartgingState(!startingState)}
+                    title="Add start state"
+                  >
+                    <CircleArrowRight size={16} />
+                    <span>Start</span>
+                  </button>
+                  <button
+                    className={buttonClass(state)}
+                    onClick={() => setState(!state)}
+                    title="Add state"
+                  >
+                    <Circle size={16} />
+                    <span>State</span>
+                  </button>
+                  <button
+                    className={buttonClass(acceptState)}
+                    onClick={() => setAcceptState(!acceptState)}
+                    title="Add accept state"
+                  >
+                    <CircleDot size={16} />
+                    <span>Accept</span>
+                  </button>
+                  <button
+                    className={buttonClass(road)}
+                    onClick={() => setRoad(!road)}
+                    title="Add transition"
+                  >
+                    <MoveRightIcon size={16} />
+                    <span>Transition</span>
+                  </button>
+                  <button
+                    className={buttonClass(finalize)}
+                    onClick={() => setFinalize(!finalize)}
+                    title="Finalize DFA"
+                  >
+                    <Square size={16} />
+                    <span>Finalize</span>
+                  </button>
+                </div>
+              )}
+
+              {activeParent === "TM" && (
+                <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5">
+                  <button
+                    className={buttonClass(tmStateMode)}
+                    onClick={() => setTmStateMode(!tmStateMode)}
+                    title="Add TM state"
+                  >
+                    <BrainCircuit size={16} />
+                    <span>TM State</span>
+                  </button>
+                  <button
+                    className={buttonClass(tmAcceptMode)}
+                    onClick={() => setTmAcceptMode(!tmAcceptMode)}
+                    title="Add TM accept state"
+                  >
+                    <ShieldCheck size={16} />
+                    <span>TM Accept</span>
+                  </button>
+                  <button
+                    className={buttonClass(tmRejectMode)}
+                    onClick={() => setTmRejectMode(!tmRejectMode)}
+                    title="Add TM reject state"
+                  >
+                    <ShieldX size={16} />
+                    <span>TM Reject</span>
+                  </button>
+                  <button
+                    className={buttonClass(tmTransitionMode)}
+                    onClick={() => setTmTransitionMode(!tmTransitionMode)}
+                    title="Add TM transition"
+                  >
+                    <Workflow size={16} />
+                    <span>TM Transition</span>
+                  </button>
+                  <button
+                    className={buttonClass(tmFinalize)}
+                    onClick={() => setTmFinalize(!tmFinalize)}
+                    title="Finalize TM"
+                  >
+                    <Square size={16} />
+                    <span>Finalize TM</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </>

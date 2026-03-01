@@ -59,19 +59,31 @@ export type SelectionMenuType = {
     setRoad: (road: boolean) => void;
     finalize: boolean;
     setFinalize: (finalize: boolean) => void;
+    tmFinalize: boolean;
+    setTmFinalize: (tmFinalize: boolean) => void;
     acceptState: boolean;
     setAcceptState: (acceptState: boolean) => void;
+    tmStateMode: boolean;
+    setTmStateMode: (value: boolean) => void;
+    tmAcceptMode: boolean;
+    setTmAcceptMode: (value: boolean) => void;
+    tmRejectMode: boolean;
+    setTmRejectMode: (value: boolean) => void;
+    tmTransitionMode: boolean;
+    setTmTransitionMode: (value: boolean) => void;
     alphabet: string[];
     setAlphabet: (alphabet: string[]) => void;
 }
 
-export interface DFACanvasProps {
+export interface AutomatonCanvasProps {
     states: State[];
     arrowPairs: ArrowPair[];
     arrowSelection: number[];
     selectionRect: SelectionRect;
     savedDFAs: SavedDFAs;
     selectedDFAName?: string | null;
+    editMode?: boolean;
+    editingDFAName?: string | null;
     previewStates?: State[] | null;
     previewArrowPairs?: ArrowPair[] | null;
     previewPosition?: { x: number; y: number } | null;
@@ -80,6 +92,10 @@ export interface DFACanvasProps {
     isDragging: boolean;
     startingState: boolean;
     state: boolean;
+    tmStateMode: boolean;
+    tmAcceptMode: boolean;
+    tmRejectMode: boolean;
+    tmTransitionMode: boolean;
     selectionMode: boolean;
     renderTick: number;
     onMouseDown: (e: React.MouseEvent) => void;
@@ -102,15 +118,17 @@ export interface ArrowInputFieldsProps {
     onArrowLabelChange: (index: number, label: string) => void;
 }
 
-export interface DFANameDialogProps {
+export interface AutomatonNameDialogProps {
     isOpen: boolean;
     dfaName: string;
+    title?: string;
+    placeholder?: string;
     onNameChange: (name: string) => void;
     onSave: () => void;
     onCancel: () => void;
 }
 
-export interface DFATableDisplayProps {
+export interface AutomatonTableDisplayProps {
     savedDFAs: SavedDFAs;
     scale: number;
     offset: Offset;

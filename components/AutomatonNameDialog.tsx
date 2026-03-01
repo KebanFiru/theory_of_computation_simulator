@@ -1,25 +1,27 @@
 "use client";
 import React from "react";
-import {DFANameDialogProps} from "../types/types";
+import { AutomatonNameDialogProps } from "../types/types";
 
 
-export default function DFANameDialog({
+export default function AutomatonNameDialog({
   isOpen,
   dfaName,
+  title,
+  placeholder,
   onNameChange,
   onSave,
   onCancel
-}: DFANameDialogProps) {
+}: AutomatonNameDialogProps) {
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-[var(--overlay)] flex items-center justify-center z-50">
       <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-md w-full border border-[var(--border)]">
-        <h3 className="text-xl font-bold mb-4 text-[var(--text)]">Name Your DFA</h3>
+        <h3 className="text-xl font-bold mb-4 text-[var(--text)]">{title ?? "Name Your Automaton"}</h3>
         <input
           type="text"
           className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-4 text-[var(--text)] placeholder-[var(--text-subtle)]"
-          placeholder="Enter DFA name..."
+          placeholder={placeholder ?? "Enter automaton name..."}
           value={dfaName}
           onChange={e => onNameChange(e.target.value)}
           onKeyPress={e => e.key === "Enter" && onSave()}

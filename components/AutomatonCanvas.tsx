@@ -1,14 +1,16 @@
 "use client";
 import React, { useRef, useEffect, forwardRef, useState } from "react";
-import type { State , DFACanvasProps} from "../types/types";
+import type { State , AutomatonCanvasProps} from "../types/types";
 
-const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
+const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({ 
   states,
   arrowPairs,
   arrowSelection,
   selectionRect,
   savedDFAs,
   selectedDFAName,
+  editMode,
+  editingDFAName,
   previewStates,
   previewArrowPairs,
   previewPosition,
@@ -17,6 +19,10 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
   isDragging,
   startingState,
   state,
+  tmStateMode,
+  tmAcceptMode,
+  tmRejectMode,
+  tmTransitionMode,
   selectionMode,
   renderTick,
   onMouseDown,
@@ -75,7 +81,11 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     const stateColors: Record<string, string> = {
       red: getVar("--state-start", "#ef4444"),
       green: getVar("--state-normal", "#22c55e"),
-      blue: getVar("--state-accept", "#3b82f6")
+      blue: getVar("--state-accept", "#3b82f6"),
+      purple: getVar("--state-reject", "#a855f7"),
+      "tm-green": getVar("--state-tm", "#f59e0b"),
+      "tm-blue": getVar("--state-tm-accept", "#06b6d4"),
+      "tm-purple": getVar("--state-tm-reject", "#8b5cf6")
     };
     ctx.setTransform(scale, 0, 0, scale, offset.x, offset.y);
     ctx.clearRect(-offset.x / scale, -offset.y / scale, canvas.width / scale, canvas.height / scale);
@@ -115,10 +125,34 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       ctx.save();
       ctx.font = "600 12px Inter, system-ui, sans-serif";
       ctx.fillStyle = isSelected ? canvasTextSelected : canvasText;
+      ctx.strokeStyle = canvasBg;
+      ctx.lineWidth = 3;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+      ctx.strokeText(`q${index}`, state.x, state.y);
       ctx.fillText(`q${index}`, state.x, state.y);
       ctx.restore();
+
+      if (state.color?.startsWith("tm-")) {
+        ctx.save();
+        ctx.font = "700 9px Inter, system-ui, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        const badgeText = "TM";
+        const textWidth = ctx.measureText(badgeText).width;
+        const badgeWidth = textWidth + 8;
+        const badgeHeight = 14;
+        const bx = state.x - badgeWidth / 2;
+        const by = state.y - state.r - badgeHeight - 3;
+        ctx.fillStyle = stateColors[state.color] ?? "#f59e0b";
+        ctx.beginPath();
+        ctx.roundRect(bx, by, badgeWidth, badgeHeight, 4);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(badgeText, state.x, by + badgeHeight / 2 + 0.5);
+        ctx.restore();
+      }
     });
 
     // Draw arrows
@@ -202,6 +236,12 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         );
       }
     });
+
+    drawTransitionLabels(ctx, arrowPairs, states, {
+      baseColor: canvasText,
+      bgColor: canvasNode,
+      borderColor: arrowColor
+    });
     
     // Draw selection rectangle if exists
     if (selectionRect) {
@@ -219,6 +259,7 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     
     // Draw saved DFA rectangles in green
     Object.entries(savedDFAs).forEach(([name, data]) => {
+      if (editMode) return;
       const bounds = data.bounds;
       if (!Number.isFinite(bounds.x1) || !Number.isFinite(bounds.x2) || !Number.isFinite(bounds.y1) || !Number.isFinite(bounds.y2)) {
         return;
@@ -246,7 +287,8 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
       ctx.restore();
     });
 
-    Object.values(savedDFAs).forEach((data) => {
+    Object.entries(savedDFAs).forEach(([name, data]) => {
+      if (editMode) return;
       const snapshot = data.snapshot;
       if (!snapshot?.states?.length) return;
 
@@ -262,6 +304,12 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
           return;
         }
         drawArrow(ctx, fromCircle, toCircle, arrowColor);
+      });
+
+      drawTransitionLabels(ctx, snapshot.arrowPairs ?? [], snapshot.states, {
+        baseColor: canvasText,
+        bgColor: canvasNode,
+        borderColor: arrowColor
       });
 
       snapshot.states.forEach((state, index) => {
@@ -285,8 +333,11 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         ctx.save();
         ctx.font = "600 12px Inter, system-ui, sans-serif";
         ctx.fillStyle = canvasText;
+        ctx.strokeStyle = canvasBg;
+        ctx.lineWidth = 3;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+        ctx.strokeText(`q${index}`, state.x, state.y);
         ctx.fillText(`q${index}`, state.x, state.y);
         ctx.restore();
       });
@@ -322,8 +373,11 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         ctx.save();
         ctx.font = "600 12px Inter, system-ui, sans-serif";
         ctx.fillStyle = canvasText;
+        ctx.strokeStyle = canvasBg;
+        ctx.lineWidth = 3;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+        ctx.strokeText(`q${index}`, x, y);
         ctx.fillText(`q${index}`, x, y);
         ctx.restore();
       });
@@ -344,8 +398,35 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
         );
       });
 
+      const shiftedPreviewStates = previewStates.map(state => ({
+        ...state,
+        x: state.x + previewPosition.x,
+        y: state.y + previewPosition.y
+      }));
+
+      drawTransitionLabels(ctx, previewArrowPairs, shiftedPreviewStates, {
+        baseColor: canvasText,
+        bgColor: canvasNode,
+        borderColor: previewColor
+      });
+
       ctx.restore();
     }
+
+    // Keep live state labels on top so arrows/overlays can't hide them
+    states.forEach((state, index) => {
+      const isSelected = arrowSelection.includes(index);
+      ctx.save();
+      ctx.font = "700 13px Inter, system-ui, sans-serif";
+      ctx.fillStyle = isSelected ? canvasTextSelected : canvasText;
+      ctx.strokeStyle = canvasBg;
+      ctx.lineWidth = 4;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.strokeText(`q${index}`, state.x, state.y);
+      ctx.fillText(`q${index}`, state.x, state.y);
+      ctx.restore();
+    });
   }, [
     offset,
     scale,
@@ -354,6 +435,8 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     arrowSelection,
     selectionRect,
     savedDFAs,
+    editMode,
+    editingDFAName,
     renderTick,
     themeTick,
     previewStates,
@@ -479,6 +562,84 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
     ctx.fill();
   }
 
+  function drawTransitionLabels(
+    ctx: CanvasRenderingContext2D,
+    pairs: Array<{ from: number; to: number; label?: string }>,
+    nodeStates: Array<{ x: number; y: number; r: number }>,
+    style: { baseColor: string; bgColor: string; borderColor: string }
+  ) {
+    const grouped = new Map<string, { from: number; to: number; labels: string[] }>();
+
+    pairs.forEach(pair => {
+      const text = (pair.label ?? "").trim();
+      if (!text) return;
+      const key = `${pair.from}-${pair.to}`;
+      const current = grouped.get(key);
+      if (!current) {
+        grouped.set(key, { from: pair.from, to: pair.to, labels: [text] });
+        return;
+      }
+      if (!current.labels.includes(text)) {
+        current.labels.push(text);
+      }
+    });
+
+    grouped.forEach(entry => {
+      const fromState = nodeStates[entry.from];
+      const toState = nodeStates[entry.to];
+      if (!fromState || !toState) return;
+
+      const labelText = entry.labels.join(",");
+      let x = (fromState.x + toState.x) / 2;
+      let y = (fromState.y + toState.y) / 2;
+
+      if (entry.from === entry.to) {
+        x = fromState.x;
+        y = fromState.y - fromState.r - 46;
+      } else {
+        const hasReverse = pairs.some(
+          pair => pair.from === entry.to && pair.to === entry.from && pair.from !== pair.to
+        );
+
+        if (hasReverse) {
+          const minIndex = Math.min(entry.from, entry.to);
+          const maxIndex = Math.max(entry.from, entry.to);
+          const baseFrom = nodeStates[minIndex];
+          const baseTo = nodeStates[maxIndex];
+          if (baseFrom && baseTo) {
+            const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+            const isForward = entry.from === minIndex;
+            const appliedOffset = isForward
+              ? baseOffset
+              : { x: -baseOffset.x, y: -baseOffset.y };
+            x += appliedOffset.x * 1.6;
+            y += appliedOffset.y * 1.6;
+          }
+        }
+      }
+
+      ctx.save();
+      ctx.font = "600 11px Inter, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const textWidth = ctx.measureText(labelText).width;
+      const boxWidth = Math.max(20, textWidth + 10);
+      const boxHeight = 18;
+
+      ctx.beginPath();
+      ctx.fillStyle = style.bgColor;
+      ctx.strokeStyle = style.borderColor;
+      ctx.lineWidth = 1.4;
+      ctx.roundRect(x - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = style.baseColor;
+      ctx.fillText(labelText, x, y + 0.5);
+      ctx.restore();
+    });
+  }
+
   return (
     <canvas
       ref={canvasRef}
@@ -492,6 +653,14 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
           : isDragging
           ? "grabbing"
           : state
+          ? "crosshair"
+          : tmStateMode
+          ? "crosshair"
+          : tmAcceptMode
+          ? "crosshair"
+          : tmRejectMode
+          ? "crosshair"
+          : tmTransitionMode
           ? "crosshair"
           : selectionMode
           ? "crosshair"
@@ -507,6 +676,6 @@ const DFACanvas = forwardRef<HTMLCanvasElement, DFACanvasProps>(({
   );
 });
 
-DFACanvas.displayName = "DFACanvas";
+AutomatonCanvas.displayName = "AutomatonCanvas";
 
-export default DFACanvas;
+export default AutomatonCanvas;

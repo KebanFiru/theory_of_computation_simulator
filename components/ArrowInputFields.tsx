@@ -117,6 +117,38 @@ export default function ArrowInputFields({
           const arrowEntry = sameDirectionArrows[slotIdx];
           const arrowIdx = arrowEntry?.originalIndex ?? -1;
           const value = arrowEntry?.label ?? "";
+          const isTmLabel = value.includes("/") && value.includes(",");
+
+          if (value === "ε") {
+            return (
+              <div
+                key={`arrow-epsilon-${pair.from}-${pair.to}-${slotIdx}`}
+                style={{
+                  position: "fixed",
+                  left: screenX + offsetX,
+                  top: screenY,
+                  width: 56,
+                  height: 38,
+                  zIndex: 95,
+                  transform: "translate(-50%, -50%)",
+                  background: "var(--surface-overlay-strong)",
+                  border: "1px solid var(--border-strong)",
+                  borderRadius: 10,
+                  textAlign: "center",
+                  boxShadow: "0 6px 16px var(--shadow-color)",
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: "var(--text)",
+                  lineHeight: "38px",
+                  pointerEvents: "none",
+                  userSelect: "none"
+                }}
+              >
+                ε
+              </div>
+            );
+          }
+
           return (
             <input
               key={`arrow-${pair.from}-${pair.to}-${slotIdx}`}
@@ -139,12 +171,19 @@ export default function ArrowInputFields({
               }}
               className="focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               value={value}
-              maxLength={1}
+              maxLength={isTmLabel ? 24 : 1}
+              onMouseDown={e => e.stopPropagation()}
               onChange={e => {
                 const val = e.target.value;
                 if (arrowIdx === -1) return;
                 if (val === "") {
                   onArrowLabelChange(arrowIdx, "");
+                  return;
+                }
+                const tmPattern = /^(.+)\/(.+),([LRS])$/;
+                if (isTmLabel) {
+                  if (!tmPattern.test(val)) return;
+                  onArrowLabelChange(arrowIdx, val);
                   return;
                 }
                 if (!alphabet.includes(val)) return;

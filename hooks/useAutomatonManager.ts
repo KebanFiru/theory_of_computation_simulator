@@ -1,10 +1,11 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
 import type { State, SavedDFAs } from "../types/types";
+import { FiniteAutomaton } from "../lib/automata";
 
 const STORAGE_KEY = "cts-saved-dfas-v1";
 
-export function useDFAManager() {
+export function useAutomatonManager() {
   const [states, setStates] = useState<State[]>([]);
   const [alphabet, setAlphabet] = useState<string[]>([]);
   const [arrowPairs, setArrowPairs] = useState<{ from: number; to: number; label?: string }[]>([]);
@@ -64,8 +65,6 @@ export function useDFAManager() {
       const notifyError = (message: string) => {
         if (options?.onError) {
           options.onError(message);
-        } else {
-          alert(message);
         }
       };
 
@@ -75,9 +74,8 @@ export function useDFAManager() {
       }
 
       if (savedDFAs[dfaName] && !options?.forceOverwrite) {
-        if (!confirm(`A DFA named "${dfaName}" already exists. Overwrite?`)) {
-          return false;
-        }
+        notifyError(`A DFA named "${dfaName}" already exists.`);
+        return false;
       }
 
       if (!selectionRect) {
@@ -118,46 +116,6 @@ export function useDFAManager() {
         return false;
       }
 
-      // Build transition table
-      const table: string[][] = [];
-
-      // First row: header with alphabet
-      const headerRow = ["State", ...trimmedAlphabet];
-      table.push(headerRow);
-
-      // Save alphabet for this DFA
-      setDfaAlphabets(prev => ({ ...prev, [dfaName]: [...trimmedAlphabet] }));
-
-      // For each selected state, create a row
-      selectedStateIndices.forEach(stateIndex => {
-        const st = states[stateIndex];
-        const newStateIndex = stateIndexMap[stateIndex];
-          const stateLabel =
-            st.color === "blue" ? `q${newStateIndex}*` : `q${newStateIndex}`;
-        const row = [stateLabel];
-
-        // For each alphabet symbol, find transitions
-        trimmedAlphabet.forEach(symbol => {
-          let targetStates: string[] = [];
-
-          // Find all arrows from this state with this symbol (only to selected states)
-          arrowPairs.forEach(pair => {
-            if (
-              pair.from === stateIndex &&
-              selectedStateIndices.includes(pair.to) &&
-              pair.label === symbol
-            ) {
-              const newTargetIndex = stateIndexMap[pair.to];
-              targetStates.push(`q${newTargetIndex}`);
-            }
-          });
-
-          row.push(targetStates.length > 0 ? targetStates.join(",") : "-");
-        });
-
-        table.push(row);
-      });
-
       // Save to collection with bounds
       const snapshotStates = selectedStateIndices.map(index => states[index]);
       const snapshotArrows = arrowPairs
@@ -167,6 +125,12 @@ export function useDFAManager() {
           from: stateIndexMap[pair.from],
           to: stateIndexMap[pair.to]
         }));
+
+      const automaton = FiniteAutomaton.fromCanvasSnapshot(snapshotStates, snapshotArrows, trimmedAlphabet);
+      const table = automaton.toTable();
+
+      // Save alphabet for this DFA
+      setDfaAlphabets(prev => ({ ...prev, [dfaName]: [...trimmedAlphabet] }));
 
       setSavedDFAs(prev => ({
         ...prev,

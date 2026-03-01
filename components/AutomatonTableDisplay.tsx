@@ -1,175 +1,20 @@
 "use client";
 import React from "react";
-import { DFATableDisplayProps } from "../types/types";
+import { AutomatonTableDisplayProps } from "../types/types";
+import { FiniteAutomaton, automatonFromSavedFA } from "../lib/automata";
 
 
-export default function DFATableDisplay({
+export default function AutomatonTableDisplay({
   savedDFAs,
   scale,
   offset,
   canvasRef,
   selectedDFAName,
   onSelect
-}: DFATableDisplayProps) {
+}: AutomatonTableDisplayProps) {
   if (Object.keys(savedDFAs).length === 0) return null;
 
   const [testInputs, setTestInputs] = React.useState<Record<string, string>>({});
-
-  const buildAutomaton = React.useCallback((table: string[][]) => {
-    const header = table[0] ?? [];
-    const alphabet = header.slice(1);
-    const rows = table.slice(1);
-    const stateNames = rows.map(row => (row?.[0] ?? "").replace(/\*$/, ""));
-    const acceptStates = new Set(
-      rows
-        .map(row => row?.[0] ?? "")
-        .filter(label => /\*$/.test(label))
-        .map(label => label.replace(/\*$/, ""))
-    );
-
-    const transitions: Record<string, Record<string, string[]>> = {};
-    stateNames.forEach((stateName, rowIndex) => {
-      transitions[stateName] = transitions[stateName] ?? {};
-      alphabet.forEach((symbol, colIndex) => {
-        const cell = rows[rowIndex]?.[colIndex + 1] ?? "-";
-        if (!cell || cell.trim() === "-" || cell.trim() === "") {
-          transitions[stateName][symbol] = [];
-        } else {
-          transitions[stateName][symbol] = cell
-            .split(",")
-            .map(value => value.trim())
-            .filter(Boolean);
-        }
-      });
-    });
-
-    const startState = stateNames[0];
-    return {
-      alphabet,
-      stateNames,
-      acceptStates,
-      startState,
-      transitions
-    };
-  }, []);
-
-  const getAutomatonType = React.useCallback((automaton: ReturnType<typeof buildAutomaton>) => {
-    let hasMissing = false;
-    let hasMultiple = false;
-
-    automaton.stateNames.forEach(stateName => {
-      automaton.alphabet.forEach(symbol => {
-        const targets = automaton.transitions[stateName]?.[symbol] ?? [];
-        if (targets.length === 0) {
-          hasMissing = true;
-        } else if (targets.length > 1) {
-          hasMultiple = true;
-        }
-      });
-    });
-
-    if (hasMultiple) return "NFA";
-    if (hasMissing) return "Incomplete DFA";
-    return "DFA";
-  }, [buildAutomaton]);
-
-  const acceptsString = React.useCallback(
-    (automaton: ReturnType<typeof buildAutomaton>, input: string) => {
-      if (!automaton.startState) return false;
-      let currentStates = new Set<string>([automaton.startState]);
-
-      for (const symbol of input) {
-        if (!automaton.alphabet.includes(symbol)) return false;
-        const nextStates = new Set<string>();
-        currentStates.forEach(stateName => {
-          const targets = automaton.transitions[stateName]?.[symbol] ?? [];
-          targets.forEach(target => nextStates.add(target));
-        });
-        currentStates = nextStates;
-        if (currentStates.size === 0) return false;
-      }
-
-      return Array.from(currentStates).some(state => automaton.acceptStates.has(state));
-    },
-    [buildAutomaton]
-  );
-
-  const generateRegex = React.useCallback((automaton: ReturnType<typeof buildAutomaton>) => {
-    const { stateNames, alphabet, transitions, startState, acceptStates } = automaton;
-    if (!startState || stateNames.length === 0) return "∅";
-
-    const start = "__start__";
-    const end = "__end__";
-    const allStates = [start, ...stateNames, end];
-
-    const empty = "∅";
-    const epsilon = "ε";
-
-    const needsParens = (value: string) => value.includes("|") && !/^\(.*\)$/.test(value);
-
-    const union = (a: string, b: string) => {
-      if (a === empty) return b;
-      if (b === empty) return a;
-      if (a === b) return a;
-      return `(${a}|${b})`;
-    };
-
-    const concat = (a: string, b: string) => {
-      if (a === empty || b === empty) return empty;
-      if (a === epsilon) return b;
-      if (b === epsilon) return a;
-      const left = needsParens(a) ? `(${a})` : a;
-      const right = needsParens(b) ? `(${b})` : b;
-      return `${left}${right}`;
-    };
-
-    const star = (a: string) => {
-      if (a === empty || a === epsilon) return epsilon;
-      if (a.length === 1) return `${a}*`;
-      return `(${a})*`;
-    };
-
-    const R: Record<string, Record<string, string>> = {};
-    allStates.forEach(i => {
-      R[i] = {};
-      allStates.forEach(j => {
-        R[i][j] = empty;
-      });
-    });
-
-    R[start][startState] = epsilon;
-    acceptStates.forEach(state => {
-      R[state][end] = union(R[state][end], epsilon);
-    });
-
-    stateNames.forEach(from => {
-      alphabet.forEach(symbol => {
-        const targets = transitions[from]?.[symbol] ?? [];
-        targets.forEach(target => {
-          const label = symbol === "" ? epsilon : symbol;
-          R[from][target] = union(R[from][target], label);
-        });
-      });
-    });
-
-    const eliminatable = stateNames.slice();
-    eliminatable.forEach(k => {
-      allStates.forEach(i => {
-        if (i === k) return;
-        allStates.forEach(j => {
-          if (j === k) return;
-          const rik = R[i][k];
-          const rkk = R[k][k];
-          const rkj = R[k][j];
-          if (rik === empty || rkj === empty) return;
-          const candidate = concat(concat(rik, star(rkk)), rkj);
-          R[i][j] = union(R[i][j], candidate);
-        });
-      });
-    });
-
-    return R[start][end] === empty ? "∅" : R[start][end];
-  }, [buildAutomaton]);
 
   const generateStrings = React.useCallback((alphabet: string[], maxLength: number) => {
     const results: string[] = [""];
@@ -183,18 +28,19 @@ export default function DFATableDisplay({
   }, []);
 
   const testInput = React.useCallback(
-    (automaton: ReturnType<typeof buildAutomaton>, value: string) => {
+    (automaton: FiniteAutomaton, value: string) => {
       const trimmed = value.trim();
       if (!trimmed) return { status: "", detail: "" };
+      const alphabet = [...automaton.alphabet];
 
       const regexCharacters = /[.*+?^${}()|[\]\\]/;
       const regexInput = regexCharacters.test(trimmed) || (trimmed.startsWith("/") && trimmed.endsWith("/"));
 
       if (!regexInput) {
-        if ([...trimmed].some(char => !automaton.alphabet.includes(char))) {
+        if ([...trimmed].some(char => !alphabet.includes(char))) {
           return { status: "Invalid", detail: "Contains symbols outside the alphabet." };
         }
-        const isValid = acceptsString(automaton, trimmed);
+        const isValid = automaton.accepts(trimmed);
         return { status: isValid ? "Valid" : "Invalid", detail: "" };
       }
 
@@ -204,8 +50,8 @@ export default function DFATableDisplay({
 
       try {
         const regex = new RegExp(`^${pattern}$`);
-        const candidates = generateStrings(automaton.alphabet, 5);
-        const match = candidates.find(str => regex.test(str) && acceptsString(automaton, str));
+        const candidates = generateStrings(alphabet, 5);
+        const match = candidates.find(str => regex.test(str) && automaton.accepts(str));
         if (match !== undefined) {
           return { status: "Valid", detail: `Matched accepted string: "${match}"` };
         }
@@ -214,7 +60,7 @@ export default function DFATableDisplay({
         return { status: "Invalid", detail: "Regex syntax error." };
       }
     },
-    [acceptsString, generateStrings, buildAutomaton]
+    [generateStrings]
   );
 
   return (
@@ -224,9 +70,9 @@ export default function DFATableDisplay({
         const rect = canvasRef.current?.getBoundingClientRect();
         if (!rect) return null;
 
-        const automaton = buildAutomaton(data.table);
-        const automatonType = getAutomatonType(automaton);
-        const automatonRegex = generateRegex(automaton);
+        const automaton = automatonFromSavedFA(data, (data.table?.[0] ?? []).slice(1));
+        const automatonType = automaton.getType();
+        const automatonRegex = automaton.toRegex();
         const inputValue = testInputs[name] ?? "";
         const testResult = testInput(automaton, inputValue);
         const isSelected = selectedDFAName === name;
