@@ -19,6 +19,7 @@ export default function Canvas() {
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editMode, setEditMode] = useState(false);
   const [editingDFAName, setEditingDFAName] = useState<string | null>(null);
+  const [editingParentMode, setEditingParentMode] = useState<"FA" | "TM" | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   // Mode states
@@ -751,6 +752,8 @@ export default function Canvas() {
         dfaManager.setArrowSelection([]);
         setEditMode(true);
         setEditingDFAName(dfaName);
+        const isTmSnapshot = snapshot?.states?.some((state: State) => state.color.startsWith("tm-")) ?? false;
+        setEditingParentMode(isTmSnapshot ? "TM" : "FA");
       }
     };
     window.addEventListener("editDFA", handler);
@@ -807,6 +810,7 @@ export default function Canvas() {
     if (editingDFAName && names.includes(editingDFAName)) {
       setEditMode(false);
       setEditingDFAName(null);
+      setEditingParentMode(null);
       dfaManager.setStates([]);
       dfaManager.setArrowPairs([]);
       dfaManager.setArrowSelection([]);
@@ -1466,6 +1470,7 @@ export default function Canvas() {
               }
               setEditMode(false);
               setEditingDFAName(null);
+              setEditingParentMode(null);
             }}
           >Done</button>
         </div>
@@ -1493,6 +1498,7 @@ export default function Canvas() {
         setFinalize={setFinalize}
         tmFinalize={tmFinalize}
         setTmFinalize={setTmFinalize}
+        activeParentOverride={editingParentMode}
         alphabetOwnerLabel={editMode && editingDFAName ? editingDFAName : "Unsaved FA"}
         alphabetLocked={editMode ? false : false}
       />

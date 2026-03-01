@@ -6,8 +6,13 @@ import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot, BrainCircui
 
 import type { SelectionMenuProps } from '../types/ui';  
 
-export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, tmFinalize, setTmFinalize, acceptState, setAcceptState, tmStateMode, setTmStateMode, tmAcceptMode, setTmAcceptMode, tmRejectMode, setTmRejectMode, tmTransitionMode, setTmTransitionMode, alphabetOwnerLabel, alphabetLocked}: SelectionMenuProps){
+export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, tmFinalize, setTmFinalize, acceptState, setAcceptState, tmStateMode, setTmStateMode, tmAcceptMode, setTmAcceptMode, tmRejectMode, setTmRejectMode, tmTransitionMode, setTmTransitionMode, alphabetOwnerLabel, alphabetLocked, activeParentOverride}: SelectionMenuProps){
   const [activeParent, setActiveParent] = React.useState<"FA" | "TM">("FA");
+
+  React.useEffect(() => {
+    if (!activeParentOverride) return;
+    setActiveParent(activeParentOverride);
+  }, [activeParentOverride]);
 
   const buttonClass = (active: boolean) =>
     `inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all border whitespace-nowrap ${

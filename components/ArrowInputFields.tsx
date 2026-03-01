@@ -117,7 +117,8 @@ export default function ArrowInputFields({
           const arrowEntry = sameDirectionArrows[slotIdx];
           const arrowIdx = arrowEntry?.originalIndex ?? -1;
           const value = arrowEntry?.label ?? "";
-          const isTmLabel = value.includes("/") && value.includes(",");
+          const isTmTransition =
+            fromCircle.color.startsWith("tm-") && toCircle.color.startsWith("tm-");
 
           if (value === "ε") {
             return (
@@ -171,7 +172,7 @@ export default function ArrowInputFields({
               }}
               className="focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               value={value}
-              maxLength={isTmLabel ? 24 : 1}
+              maxLength={isTmTransition ? 24 : 1}
               onMouseDown={e => e.stopPropagation()}
               onChange={e => {
                 const val = e.target.value;
@@ -180,12 +181,12 @@ export default function ArrowInputFields({
                   onArrowLabelChange(arrowIdx, "");
                   return;
                 }
-                const tmPattern = /^(.+)\/(.+),([LRS])$/;
-                if (isTmLabel) {
-                  if (!tmPattern.test(val)) return;
+
+                if (isTmTransition) {
                   onArrowLabelChange(arrowIdx, val);
                   return;
                 }
+
                 if (!alphabet.includes(val)) return;
                 if (arrowPairs.some((p) => p.from === pair.from && p.to === pair.to && p.label === val)) return;
                 onArrowLabelChange(arrowIdx, val);

@@ -44,4 +44,5 @@ export type SelectionMenuProps = {
   setAlphabet: (a: string[]) => void;
   alphabetOwnerLabel?: string;
   alphabetLocked?: boolean;
+  activeParentOverride?: "FA" | "TM" | null;
 };
