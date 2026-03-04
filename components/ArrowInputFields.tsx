@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
-import type { State, ArrowInputFieldsProps } from "../types/types";
+import type { ArrowInputFieldsProps } from "../types/component-props";
+import { Transition } from "../lib/util-classes/transition";
 
 export default function ArrowInputFields({
   arrowPairs,
@@ -11,136 +12,49 @@ export default function ArrowInputFields({
   offset,
   canvasRef,
   showNameDialog,
+  visible = true,
   onArrowLabelChange
 }: ArrowInputFieldsProps) {
-  if (showNameDialog) return null;
+  if (showNameDialog || !visible) return null;
 
-  const calculateParallelOffset = (
-    from: { x: number; y: number },
-    to: { x: number; y: number },
-    isForwardDirection: boolean
-  ) => {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const length = Math.hypot(dx, dy);
-    if (length === 0) return { x: 0, y: 0 };
-    const offsetDistance = 10;
-    const perpX = -dy / length;
-    const perpY = dx / length;
-    const sign = isForwardDirection ? 1 : -1;
-    return {
-      x: perpX * offsetDistance * sign,
-      y: perpY * offsetDistance * sign
-    };
-  };
-
-  // Deduplicate arrowPairs so only one per direction (from, to) is rendered
-  const uniqueArrowPairs = React.useMemo(() => {
-    const seen = new Set<string>();
-    return arrowPairs
-      .map((pair, idx) => ({ ...pair, originalIndex: idx }))
-      .filter((pair) => {
-        const key = `${pair.from}-${pair.to}`;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-  }, [arrowPairs]);
+  const rect = canvasRef.current?.getBoundingClientRect();
+  const descriptors = React.useMemo(
+    () => Transition.getInputDescriptors({
+      arrowPairs,
+      states,
+      alphabet,
+      transitionSlots,
+      scale,
+      offset,
+      canvasRect: rect ? { left: rect.left, top: rect.top } : null
+    }),
+    [arrowPairs, states, alphabet, transitionSlots, scale, offset, rect]
+  );
 
   return (
     <>
-      {uniqueArrowPairs.map((pair) => {
-        const fromCircle = states[pair.from];
-        const toCircle = states[pair.to];
-        if (!fromCircle || !toCircle) return null;
-
-        // Find all arrows in same direction between these states
-        const sameDirectionArrows = arrowPairs
-          .map((p, idx) => ({ ...p, originalIndex: idx }))
-          .filter(p => p.from === pair.from && p.to === pair.to);
-        
-        // Check if there are reverse arrows (bidirectional)
-        const hasReverseArrows = arrowPairs.some(
-          p => p.from === pair.to && p.to === pair.from && pair.from !== pair.to
-        );
-
-        const offsetMultiplier = 0;
-
-        let midX = (fromCircle.x + toCircle.x) / 2;
-        let midY = (fromCircle.y + toCircle.y) / 2;
-
-        if (pair.from === pair.to) {
-          midX = fromCircle.x;
-          midY = fromCircle.y - fromCircle.r - 30;
-        }
-
-        // Apply perpendicular offset for positioning
-        const dx = toCircle.x - fromCircle.x;
-        const dy = toCircle.y - fromCircle.y;
-        const length = Math.hypot(dx, dy);
-
-        if (hasReverseArrows && pair.from !== pair.to) {
-          const minIndex = Math.min(pair.from, pair.to);
-          const maxIndex = Math.max(pair.from, pair.to);
-          const baseFrom = states[minIndex];
-          const baseTo = states[maxIndex];
-          if (baseFrom && baseTo) {
-            const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
-            const isForward = pair.from === minIndex;
-            const appliedOffset = isForward
-              ? baseOffset
-              : { x: -baseOffset.x, y: -baseOffset.y };
-            midX += appliedOffset.x;
-            midY += appliedOffset.y;
-          }
-        }
-
-        if (length > 0 && offsetMultiplier !== 0) {
-          const offsetDistance = 15;
-          const perpX = -dy / length;
-          const perpY = dx / length;
-
-          midX = midX + perpX * offsetDistance * offsetMultiplier;
-          midY = midY + perpY * offsetDistance * offsetMultiplier;
-        }
-
-        // Always render input fields equal to the alphabet length, regardless of label usage
-        // Convert canvas to screen coordinates
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return null;
-        const screenX = midX * scale + offset.x + rect.left;
-        const screenY = midY * scale + offset.y + rect.top;
-
-        const slotCount = transitionSlots[`${pair.from}-${pair.to}`] ?? alphabet.length;
-        return Array.from({ length: slotCount }).map((_, slotIdx) => {
-          const offsetX = (slotIdx - (slotCount - 1) / 2) * 52;
-          const arrowEntry = sameDirectionArrows[slotIdx];
-          const arrowIdx = arrowEntry?.originalIndex ?? -1;
-          const value = arrowEntry?.label ?? "";
-          const isTmTransition =
-            fromCircle.color.startsWith("tm-") && toCircle.color.startsWith("tm-");
-
-          if (value === "ε") {
+      {descriptors.map(descriptor => {
+          if (descriptor.isEpsilon) {
             return (
               <div
-                key={`arrow-epsilon-${pair.from}-${pair.to}-${slotIdx}`}
+                key={`arrow-epsilon-${descriptor.key}`}
                 style={{
                   position: "fixed",
-                  left: screenX + offsetX,
-                  top: screenY,
-                  width: 56,
-                  height: 38,
-                  zIndex: 95,
+                  left: descriptor.screenX,
+                  top: descriptor.screenY,
+                  width: descriptor.boxWidth,
+                  height: 18,
+                  zIndex: 50,
                   transform: "translate(-50%, -50%)",
-                  background: "var(--surface-overlay-strong)",
-                  border: "1px solid var(--border-strong)",
-                  borderRadius: 10,
+                  background: "var(--canvas-node)",
+                  border: "1.4px solid var(--canvas-arrow)",
+                  borderRadius: 6,
                   textAlign: "center",
-                  boxShadow: "0 6px 16px var(--shadow-color)",
-                  fontSize: 16,
+                  boxShadow: "none",
+                  fontSize: 11,
                   fontWeight: 600,
-                  color: "var(--text)",
-                  lineHeight: "38px",
+                  color: "var(--canvas-text)",
+                  lineHeight: "18px",
                   pointerEvents: "none",
                   userSelect: "none"
                 }}
@@ -152,48 +66,53 @@ export default function ArrowInputFields({
 
           return (
             <input
-              key={`arrow-${pair.from}-${pair.to}-${slotIdx}`}
+              key={`arrow-${descriptor.key}`}
               style={{
                 position: "fixed",
-                left: screenX + offsetX,
-                top: screenY,
-                width: 56,
-                height: 38,
-                zIndex: 100,
+                left: descriptor.screenX,
+                top: descriptor.screenY,
+                width: descriptor.boxWidth,
+                height: 18,
+                zIndex: 55,
                 transform: "translate(-50%, -50%)",
-                background: "var(--surface-overlay-strong)",
-                border: "1px solid var(--border-strong)",
-                borderRadius: 10,
+                background: "var(--canvas-node)",
+                border: "1.4px solid var(--canvas-arrow)",
+                borderRadius: 6,
                 textAlign: "center",
-                boxShadow: "0 6px 16px var(--shadow-color)",
-                fontSize: 16,
+                boxShadow: "none",
+                fontSize: 11,
                 fontWeight: 600,
-                color: "var(--text)"
+                color: "var(--canvas-text)",
+                padding: "0 4px",
+                lineHeight: "18px",
+                appearance: "none",
+                WebkitAppearance: "none",
+                MozAppearance: "textfield",
+                fontFamily: "Inter, system-ui, sans-serif"
               }}
               className="focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              value={value}
-              maxLength={isTmTransition ? 24 : 1}
+              value={descriptor.value}
+              maxLength={descriptor.isTmTransition ? 24 : 1}
               onMouseDown={e => e.stopPropagation()}
               onChange={e => {
                 const val = e.target.value;
-                if (arrowIdx === -1) return;
+                if (descriptor.arrowIdx === -1) return;
                 if (val === "") {
-                  onArrowLabelChange(arrowIdx, "");
+                  onArrowLabelChange(descriptor.arrowIdx, "");
                   return;
                 }
 
-                if (isTmTransition) {
-                  onArrowLabelChange(arrowIdx, val);
+                if (descriptor.isTmTransition) {
+                  onArrowLabelChange(descriptor.arrowIdx, val);
                   return;
                 }
 
                 if (!alphabet.includes(val)) return;
-                if (arrowPairs.some((p) => p.from === pair.from && p.to === pair.to && p.label === val)) return;
-                onArrowLabelChange(arrowIdx, val);
+                if (arrowPairs.some((p) => p.from === descriptor.from && p.to === descriptor.to && p.label === val)) return;
+                onArrowLabelChange(descriptor.arrowIdx, val);
               }}
             />
           );
-        });
       })}
     </>
   );

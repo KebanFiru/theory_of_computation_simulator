@@ -1,5 +1,9 @@
-import { EPSILON, FiniteAutomaton } from "../automata";
+import { EPSILON, FiniteAutomaton } from "../automata/index";
 import type { GnfaTransitionMap } from "../../types/automata";
+import { State } from "../util-classes/state";
+import { Transition } from "../util-classes/transition";
+import { SavedFA } from "../automata/saved-fa";
+import type { SavedDFA } from "../../types/domain";
 
 const unionRegex = (a?: string, b?: string) => {
   if (!a || a === "∅") return b || "∅";
@@ -60,6 +64,84 @@ export class GNFA {
     });
 
     return gnfa;
+  }
+
+  static fromSavedFA(savedFA: SavedDFA, fallbackAlphabet: string[] = []) {
+    return GNFA.fromAutomaton(SavedFA.toAutomaton(savedFA, fallbackAlphabet));
+  }
+
+  toCanvasPayload(origin: { x: number; y: number } = { x: 0, y: 0 }) {
+    const labelToIndex = new Map<string, number>();
+    const stateCount = this.states.length;
+    const radius = stateCount > 1 ? 140 : 0;
+    const step = stateCount > 0 ? (Math.PI * 2) / stateCount : 0;
+
+    const states = this.states.map((label, index) => {
+      labelToIndex.set(label, index);
+      const angle = step * index - Math.PI / 2;
+      const color = label === this.startState ? "red" : label === this.acceptState ? "blue" : "green";
+      return State.create({
+        x: origin.x + Math.cos(angle) * radius,
+        y: origin.y + Math.sin(angle) * radius,
+        color,
+        r: 20,
+        id: Date.now() + Math.random() + index
+      });
+    });
+
+    const arrowPairs: Transition[] = [];
+    this.transitions.forEach((targets, from) => {
+      const fromIndex = labelToIndex.get(from);
+      if (fromIndex === undefined) return;
+      targets.forEach((label, to) => {
+        const toIndex = labelToIndex.get(to);
+        if (toIndex === undefined) return;
+        arrowPairs.push(Transition.create(fromIndex, toIndex, label));
+      });
+    });
+
+    return {
+      states,
+      arrowPairs,
+      alphabet: [] as string[]
+    };
+  }
+
+  toTable() {
+    const payload = this.toCanvasPayload();
+    const uniqueLabels = new Set<string>();
+    payload.arrowPairs.forEach(pair => {
+      if (pair.label) uniqueLabels.add(pair.label);
+    });
+
+    const tableHeader = ["State", ...Array.from(uniqueLabels)];
+    const tableRows = this.states.map((label, index) => {
+      const rowName = label === this.acceptState ? `${label}*` : label;
+      const row = [rowName];
+      tableHeader.slice(1).forEach(symbol => {
+        const targets = payload.arrowPairs
+          .filter(pair => pair.from === index && pair.label === symbol)
+          .map(pair => this.states[pair.to])
+          .filter(Boolean);
+        row.push(targets.length ? targets.join(",") : "-");
+      });
+      return row;
+    });
+
+    return [tableHeader, ...tableRows];
+  }
+
+  toSavedPreview(baseName: string) {
+    const payload = this.toCanvasPayload();
+    return {
+      name: `${baseName}-GNFA`,
+      alphabet: payload.alphabet,
+      states: payload.states,
+      arrowPairs: payload.arrowPairs,
+      target: "saved" as const,
+      table: this.toTable(),
+      saveName: `${baseName}-GNFA`
+    };
   }
 
   toJSON() {

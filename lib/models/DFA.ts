@@ -1,4 +1,6 @@
-import { DFAAutomaton, FiniteAutomaton } from "../automata";
+import { DFAAutomaton, FiniteAutomaton } from "../automata/index";
+import { SavedFA } from "../automata/saved-fa";
+import type { SavedDFA } from "../../types/domain";
 
 export class DFA extends DFAAutomaton {
   static create(stateCount: number, alphabet: string[]) {
@@ -21,5 +23,24 @@ export class DFA extends DFAAutomaton {
     });
     dfa.forEachTransition((from, to, symbol) => next.addTransition(from, to, symbol));
     return next;
+  }
+
+  static fromSavedFA(savedFA: SavedDFA, fallbackAlphabet: string[] = []) {
+    const automaton = SavedFA.toAutomaton(savedFA, fallbackAlphabet);
+    return DFA.fromAutomaton(automaton);
+  }
+
+  toSavedPreview(baseName: string) {
+    const payload = this.toCanvasPayload({ x: 0, y: 0 });
+    const table = this.toTable();
+    return {
+      name: `${baseName}-DFA`,
+      alphabet: payload.alphabet,
+      states: payload.states,
+      arrowPairs: payload.arrowPairs,
+      target: "saved" as const,
+      table,
+      saveName: `${baseName}-DFA`
+    };
   }
 }

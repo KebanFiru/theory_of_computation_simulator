@@ -37,9 +37,15 @@
 	--canvas-saved: #22c55e;
 	--canvas-saved-text: #16a34a;
 	--canvas-arrow: #374151;
+	--canvas-arrow-selected: #2563eb;
+	--canvas-preview: #94a3b8;
 	--state-start: #ef4444;
 	--state-normal: #22c55e;
 	--state-accept: #3b82f6;
+	--state-reject: #a855f7;
+	--state-tm: #f59e0b;
+	--state-tm-accept: #06b6d4;
+	--state-tm-reject: #8b5cf6;
 }
 
 [data-theme="dark"] {
@@ -79,9 +85,15 @@
 	--canvas-saved: #10b981;
 	--canvas-saved-text: #34d399;
 	--canvas-arrow: #94a3b8;
+	--canvas-arrow-selected: #38bdf8;
+	--canvas-preview: #64748b;
 	--state-start: #fb7185;
 	--state-normal: #34d399;
 	--state-accept: #60a5fa;
+	--state-reject: #c084fc;
+	--state-tm: #f59e0b;
+	--state-tm-accept: #22d3ee;
+	--state-tm-reject: #a78bfa;
 }
 
 html,

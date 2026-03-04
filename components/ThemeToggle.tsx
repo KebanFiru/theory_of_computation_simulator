@@ -2,9 +2,7 @@
 
 import React from "react";
 import { Moon, Sun } from "lucide-react";
-import type { ThemeToggleProps } from "../types/ui";
-
-type Theme = "light" | "dark";
+import type { Theme, ThemeToggleProps } from "../types/ui";
 
 const STORAGE_KEY = "cts-theme";
 

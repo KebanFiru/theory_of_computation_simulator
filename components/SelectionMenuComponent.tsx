@@ -2,7 +2,7 @@
 
 import React from 'react';
 import AlphabetComboBox from './AlphabetComboBox';
-import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot, BrainCircuit, ShieldCheck, ShieldX, Workflow } from 'lucide-react';
+import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot, ShieldX } from 'lucide-react';
 
 import type { SelectionMenuProps } from '../types/ui';  
 
@@ -120,16 +120,16 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                     onClick={() => setTmStateMode(!tmStateMode)}
                     title="Add TM state"
                   >
-                    <BrainCircuit size={16} />
-                    <span>TM State</span>
+                    <Circle size={16} />
+                    <span>State</span>
                   </button>
                   <button
                     className={buttonClass(tmAcceptMode)}
                     onClick={() => setTmAcceptMode(!tmAcceptMode)}
                     title="Add TM accept state"
                   >
-                    <ShieldCheck size={16} />
-                    <span>TM Accept</span>
+                    <CircleDot size={16} />
+                    <span>Accept</span>
                   </button>
                   <button
                     className={buttonClass(tmRejectMode)}
@@ -137,15 +137,15 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                     title="Add TM reject state"
                   >
                     <ShieldX size={16} />
-                    <span>TM Reject</span>
+                    <span>Reject</span>
                   </button>
                   <button
                     className={buttonClass(tmTransitionMode)}
                     onClick={() => setTmTransitionMode(!tmTransitionMode)}
                     title="Add TM transition"
                   >
-                    <Workflow size={16} />
-                    <span>TM Transition</span>
+                    <MoveRightIcon size={16} />
+                    <span>Transition</span>
                   </button>
                   <button
                     className={buttonClass(tmFinalize)}
@@ -153,7 +153,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                     title="Finalize TM"
                   >
                     <Square size={16} />
-                    <span>Finalize TM</span>
+                    <span>Finalize</span>
                   </button>
                 </div>
               )}

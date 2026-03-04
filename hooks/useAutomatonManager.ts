@@ -1,14 +1,15 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
-import type { State, SavedDFAs } from "../types/types";
-import { FiniteAutomaton } from "../lib/automata";
+import { Alphabet, State, Transition } from "../lib/util-classes/index";
+import type { SavedDFAs } from "../types/domain";
+import { FiniteAutomaton } from "../lib/automata/index";
 
 const STORAGE_KEY = "cts-saved-dfas-v1";
 
 export function useAutomatonManager() {
   const [states, setStates] = useState<State[]>([]);
   const [alphabet, setAlphabet] = useState<string[]>([]);
-  const [arrowPairs, setArrowPairs] = useState<{ from: number; to: number; label?: string }[]>([]);
+  const [arrowPairs, setArrowPairs] = useState<Transition[]>([]);
   const [arrowSelection, setArrowSelection] = useState<number[]>([]);
   const [savedDFAs, setSavedDFAs] = useState<SavedDFAs>({});
   const [dfaAlphabets, setDfaAlphabets] = useState<{ [name: string]: string[] }>({});
@@ -83,14 +84,13 @@ export function useAutomatonManager() {
         return false;
       }
 
-      const trimmedAlphabet = alphabet.map(symbol => symbol.trim());
-      const hasEmptySymbol = trimmedAlphabet.some(symbol => symbol === "");
-      if (hasEmptySymbol) {
+      const alphabetModel = Alphabet.from(alphabet);
+      const trimmedAlphabet = alphabetModel.sanitize();
+      if (alphabetModel.hasEmptyAfterTrim()) {
         notifyError("Alphabet symbols cannot be empty.");
         return false;
       }
-      const uniqueAlphabet = new Set(trimmedAlphabet);
-      if (uniqueAlphabet.size !== trimmedAlphabet.length) {
+      if (alphabetModel.hasDuplicatesAfterTrim()) {
         notifyError("Alphabet symbols must be unique.");
         return false;
       }
@@ -117,14 +117,10 @@ export function useAutomatonManager() {
       }
 
       // Save to collection with bounds
-      const snapshotStates = selectedStateIndices.map(index => states[index]);
+      const snapshotStates = selectedStateIndices.map(index => State.from(states[index]));
       const snapshotArrows = arrowPairs
         .filter(pair => selectedStateIndices.includes(pair.from) && selectedStateIndices.includes(pair.to))
-        .map(pair => ({
-          ...pair,
-          from: stateIndexMap[pair.from],
-          to: stateIndexMap[pair.to]
-        }));
+        .map(pair => pair.withEndpoints(stateIndexMap[pair.from], stateIndexMap[pair.to]));
 
       const automaton = FiniteAutomaton.fromCanvasSnapshot(snapshotStates, snapshotArrows, trimmedAlphabet);
       const table = automaton.toTable();
@@ -161,7 +157,7 @@ export function useAutomatonManager() {
   // Update arrow label by index
   const updateArrowLabel = useCallback((index: number, label: string) => {
     setArrowPairs(pairs =>
-      pairs.map((p, i) => (i === index ? { ...p, label } : p))
+      pairs.map((p, i) => (i === index ? p.withLabel(label) : p))
     );
   }, []);
 

@@ -1,4 +1,4 @@
-export type ProductionRules = Record<string, string[]>;
+import type { ProductionRules } from "../../types/cfg";
 
 export class CFG {
   readonly variables: string[];

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Menu, X, Upload, Download, Database, Sigma, ArrowRightLeft, Workflow, Binary, GitBranchPlus } from "lucide-react";
+import { Menu, X, Upload, Download, Sigma, ArrowRightLeft, Workflow, Binary, GitBranchPlus } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import type { HamburgerMenuProps } from "../types/ui";
 
@@ -11,8 +11,9 @@ export default function HamburgerMenu({
   onRegexToFA,
   onConvertSelectedNfaToDfa,
   onCreateGnfa,
-  onCreateDnfa,
-  onCreateCfg
+  onCreateEnfa,
+  onCreateCfg,
+  onOpenChange
 }: HamburgerMenuProps) {
   const [open, setOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -25,7 +26,13 @@ export default function HamburgerMenu({
     <div className="fixed top-4 left-4 z-[80]">
       <button
         type="button"
-        onClick={() => setOpen(value => !value)}
+        onClick={() => {
+          setOpen(value => {
+            const next = !value;
+            onOpenChange?.(next);
+            return next;
+          });
+        }}
         className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-overlay)] text-[var(--text)] shadow-lg transition hover:bg-[var(--surface-muted)]"
         aria-label={open ? "Close menu" : "Open menu"}
         title={open ? "Close menu" : "Open menu"}
@@ -72,10 +79,10 @@ export default function HamburgerMenu({
             </button>
             <button
               type="button"
-              onClick={onCreateDnfa}
+              onClick={onCreateEnfa}
               className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
             >
-              Create DNFA
+              Create ε-NFA
               <Binary size={16} />
             </button>
             <button

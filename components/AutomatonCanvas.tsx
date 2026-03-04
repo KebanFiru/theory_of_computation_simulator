@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useEffect, forwardRef, useState } from "react";
-import type { State , AutomatonCanvasProps} from "../types/types";
+import type { AutomatonCanvasProps } from "../types/component-props";
 
 const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({ 
   states,
@@ -78,6 +78,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     const arrowColor = getVar("--canvas-arrow", "#374151");
     const arrowSelectedColor = getVar("--canvas-arrow-selected", "#2563eb");
     const previewColor = getVar("--canvas-preview", "#94a3b8");
+    const shadowColor = getVar("--shadow-color", "rgba(15, 23, 42, 0.15)");
     const stateColors: Record<string, string> = {
       red: getVar("--state-start", "#ef4444"),
       green: getVar("--state-normal", "#22c55e"),
@@ -95,14 +96,17 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     // Draw states
     states.forEach((state, index) => {
       const isSelected = arrowSelection.includes(index);
+      const isTmState = state.color?.startsWith("tm-") ?? false;
+      const isTmAccept = state.color === "tm-blue";
+      const isTmReject = state.color === "tm-purple";
       const strokeColor = state.color ? (stateColors[state.color] ?? state.color) : canvasNodeStroke;
       const fillColor = isSelected ? canvasNodeSelected : canvasNode;
 
       ctx.save();
       ctx.beginPath();
       ctx.arc(state.x, state.y, state.r, 0, 2 * Math.PI);
-      ctx.shadowColor = "rgba(0,0,0,0.6)";
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = isTmState ? 8 : 10;
       ctx.shadowOffsetY = 3;
       ctx.fillStyle = fillColor;
       ctx.fill();
@@ -112,13 +116,46 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       ctx.stroke();
       ctx.restore();
 
-      // Draw inner circle for accept states (blue)
-      if (state.color === "blue" && !isSelected) {
+      if (isTmState) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(state.x, state.y, state.r + 3, 0, 2 * Math.PI);
+        ctx.lineWidth = 1.6;
+        ctx.strokeStyle = strokeColor;
+        if (isTmReject) {
+          ctx.setLineDash([4, 3]);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      // Draw inner circle for accept states
+      if ((state.color === "blue" || isTmAccept) && !isSelected) {
         ctx.beginPath();
         ctx.arc(state.x, state.y, state.r - 5, 0, 2 * Math.PI);
-        ctx.strokeStyle = stateColors.blue ?? "#3b82f6";
+        ctx.strokeStyle = strokeColor;
         ctx.lineWidth = 2;
         ctx.stroke();
+      }
+
+      if (isTmReject) {
+        const markerX = state.x + state.r - 6;
+        const markerY = state.y + state.r - 6;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 6, 0, 2 * Math.PI);
+        ctx.fillStyle = canvasNode;
+        ctx.fill();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        ctx.font = "700 10px Inter, system-ui, sans-serif";
+        ctx.fillStyle = strokeColor;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("×", markerX, markerY + 0.5);
+        ctx.restore();
       }
 
       // Draw label
@@ -133,21 +170,23 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       ctx.fillText(`q${index}`, state.x, state.y);
       ctx.restore();
 
-      if (state.color?.startsWith("tm-")) {
+      if (isTmState) {
         ctx.save();
-        ctx.font = "700 9px Inter, system-ui, sans-serif";
-        ctx.fillStyle = "#ffffff";
-        const badgeText = "TM";
+        ctx.font = "700 8px Inter, system-ui, sans-serif";
+        const badgeText = state.color === "tm-blue" ? "ACC" : state.color === "tm-purple" ? "REJ" : "TM";
         const textWidth = ctx.measureText(badgeText).width;
         const badgeWidth = textWidth + 8;
         const badgeHeight = 14;
         const bx = state.x - badgeWidth / 2;
         const by = state.y - state.r - badgeHeight - 3;
-        ctx.fillStyle = stateColors[state.color] ?? "#f59e0b";
+        ctx.fillStyle = canvasNode;
         ctx.beginPath();
         ctx.roundRect(bx, by, badgeWidth, badgeHeight, 4);
         ctx.fill();
-        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = stateColors[state.color] ?? strokeColor;
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+        ctx.fillStyle = stateColors[state.color] ?? strokeColor;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(badgeText, state.x, by + badgeHeight / 2 + 0.5);
@@ -237,12 +276,6 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       }
     });
 
-    drawTransitionLabels(ctx, arrowPairs, states, {
-      baseColor: canvasText,
-      bgColor: canvasNode,
-      borderColor: arrowColor
-    });
-    
     // Draw selection rectangle if exists
     if (selectionRect) {
       ctx.strokeStyle = selectionColor;
@@ -259,7 +292,6 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     
     // Draw saved DFA rectangles in green
     Object.entries(savedDFAs).forEach(([name, data]) => {
-      if (editMode) return;
       const bounds = data.bounds;
       if (!Number.isFinite(bounds.x1) || !Number.isFinite(bounds.x2) || !Number.isFinite(bounds.y1) || !Number.isFinite(bounds.y2)) {
         return;
@@ -288,7 +320,6 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     });
 
     Object.entries(savedDFAs).forEach(([name, data]) => {
-      if (editMode) return;
       const snapshot = data.snapshot;
       if (!snapshot?.states?.length) return;
 
@@ -306,12 +337,6 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         drawArrow(ctx, fromCircle, toCircle, arrowColor);
       });
 
-      drawTransitionLabels(ctx, snapshot.arrowPairs ?? [], snapshot.states, {
-        baseColor: canvasText,
-        bgColor: canvasNode,
-        borderColor: arrowColor
-      });
-
       snapshot.states.forEach((state, index) => {
         const strokeColor = state.color ? (stateColors[state.color] ?? canvasNodeStroke) : canvasNodeStroke;
         ctx.beginPath();
@@ -322,12 +347,24 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         ctx.fill();
         ctx.stroke();
 
-        if (state.color === "blue") {
+        if (state.color === "blue" || state.color === "tm-blue") {
           ctx.beginPath();
           ctx.arc(state.x, state.y, state.r - 5, 0, 2 * Math.PI);
-          ctx.strokeStyle = stateColors.blue ?? "#3b82f6";
+          ctx.strokeStyle = strokeColor;
           ctx.lineWidth = 2;
           ctx.stroke();
+        }
+
+        if (state.color?.startsWith("tm-")) {
+          ctx.beginPath();
+          ctx.arc(state.x, state.y, state.r + 3, 0, 2 * Math.PI);
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = strokeColor;
+          if (state.color === "tm-purple") {
+            ctx.setLineDash([4, 3]);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         ctx.save();
@@ -362,12 +399,24 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         ctx.fill();
         ctx.stroke();
 
-        if (state.color === "blue") {
+        if (state.color === "blue" || state.color === "tm-blue") {
           ctx.beginPath();
           ctx.arc(x, y, state.r - 5, 0, 2 * Math.PI);
-          ctx.strokeStyle = stateColors.blue ?? "#3b82f6";
+          ctx.strokeStyle = strokeColor;
           ctx.lineWidth = 2;
           ctx.stroke();
+        }
+
+        if (state.color?.startsWith("tm-")) {
+          ctx.beginPath();
+          ctx.arc(x, y, state.r + 3, 0, 2 * Math.PI);
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = strokeColor;
+          if (state.color === "tm-purple") {
+            ctx.setLineDash([4, 3]);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         ctx.save();
@@ -443,22 +492,6 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     previewArrowPairs,
     previewPosition
   ]);
-
-  function calculateOffsetMultiplier(idx: number, totalArrows: number): number {
-    if (totalArrows === 1) return 0;
-    
-    if (totalArrows % 2 === 1) {
-      const middleIndex = Math.floor(totalArrows / 2);
-      if (idx === middleIndex) return 0;
-      if (idx < middleIndex) return -(middleIndex - idx);
-      return (idx - middleIndex);
-    } 
-    else {
-      const halfPoint = totalArrows / 2;
-      if (idx < halfPoint) return -(halfPoint - idx) + 0.5;
-      return (idx - halfPoint) + 0.5;
-    }
-  }
 
   function calculateParallelOffset(
     from: { x: number; y: number },

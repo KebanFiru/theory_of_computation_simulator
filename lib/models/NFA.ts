@@ -1,4 +1,4 @@
-import { FiniteAutomaton, NFAAutomaton } from "../automata";
+import { FiniteAutomaton, NFAAutomaton } from "../automata/index";
 
 export class NFA extends NFAAutomaton {
   static create(stateCount: number, alphabet: string[]) {

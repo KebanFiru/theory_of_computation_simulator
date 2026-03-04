@@ -1,9 +1,6 @@
 "use client";
 import React from "react";
-
-interface SelectionModeIndicatorProps {
-  isActive: boolean;
-}
+import type { SelectionModeIndicatorProps } from "../types/component-props";
 
 export default function SelectionModeIndicator({
   isActive
