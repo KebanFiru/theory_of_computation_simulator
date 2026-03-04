@@ -1,4 +1,4 @@
-# Computation Theory Simulator (Frontend)
+# Computation Theory Simulator
 
 Interactive canvas-based simulator for finite automata and Turing machine workflows.
 

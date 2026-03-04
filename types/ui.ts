@@ -2,14 +2,17 @@ export type ThemeToggleProps = {
   mode?: "floating" | "inline";
 };
 
+export type Theme = "light" | "dark";
+
 export type HamburgerMenuProps = {
   onExportSelected: () => void;
   onImportJson: (file: File) => void;
   onRegexToFA: () => void;
   onConvertSelectedNfaToDfa: () => void;
   onCreateGnfa: () => void;
-  onCreateDnfa: () => void;
+  onCreateEnfa: () => void;
   onCreateCfg: () => void;
+  onOpenChange?: (open: boolean) => void;
 };
 
 export type AlphabetComboBoxProps = {
