@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { AutomatonNameDialogProps } from "../types/types";
+import type { AutomatonNameDialogProps } from "../types/component-props";
 
 
 export default function AutomatonNameDialog({
