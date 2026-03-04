@@ -31,6 +31,7 @@ export interface AutomatonCanvasProps {
   states: State[];
   arrowPairs: Transition[];
   arrowSelection: number[];
+  showLiveTransitionLabels?: boolean;
   selectionRect: SelectionRect;
   savedDFAs: SavedDFAs;
   selectedDFAName?: string | null;

@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState, useMemo, useReducer, useCallback } from "react";
+import React, { useRef, useState, useReducer, useCallback } from "react";
 import SelectionMenu from "../components/SelectionMenuComponent";
 import AutomatonCanvas from "../components/AutomatonCanvas";
 import ArrowInputFields from "../components/ArrowInputFields";
@@ -80,17 +80,6 @@ export default function Canvas() {
   const canvasInteraction = useCanvasInteraction();
   const selection = useSelectionMode();
   const { toast, showToast } = useToast();
-
-  // Create unique arrow pairs set to prevent duplicates
-  const uniqueArrowPairs = useMemo(() => {
-    const seen = new Set<string>();
-    return dfaManager.arrowPairs.filter((pair, index) => {
-      const key = `${pair.from}-${pair.to}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }, [dfaManager.arrowPairs]);
 
   useFinalizeSelectionFlow({
     finalize,
@@ -301,8 +290,9 @@ export default function Canvas() {
       <AutomatonCanvas
         ref={canvasRef}
         states={dfaManager.states}
-        arrowPairs={uniqueArrowPairs}
+        arrowPairs={dfaManager.arrowPairs}
         arrowSelection={dfaManager.arrowSelection}
+        showLiveTransitionLabels={isMenuOpen || showNameDialog}
         selectionRect={selection.selectionRect}
         savedDFAs={dfaManager.savedDFAs}
         selectedDFAName={selectedDFAName}
@@ -339,7 +329,7 @@ export default function Canvas() {
         offset={canvasInteraction.offset}
         canvasRef={canvasRef}
         showNameDialog={showNameDialog}
-        visible={!isMenuOpen && (editMode || road || tmTransitionMode)}
+        visible={!isMenuOpen}
         onArrowLabelChange={(index, label) => {
           // Prevent duplicate labels between same from-to
           const pair = dfaManager.arrowPairs[index];

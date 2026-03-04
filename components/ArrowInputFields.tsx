@@ -15,7 +15,7 @@ export default function ArrowInputFields({
   visible = true,
   onArrowLabelChange
 }: ArrowInputFieldsProps) {
-  if (showNameDialog || !visible) return null;
+  if (showNameDialog) return null;
 
   const rect = canvasRef.current?.getBoundingClientRect();
   const descriptors = React.useMemo(
@@ -30,6 +30,45 @@ export default function ArrowInputFields({
     }),
     [arrowPairs, states, alphabet, transitionSlots, scale, offset, rect]
   );
+
+  if (!visible) {
+    return (
+      <>
+        {descriptors
+          .filter(descriptor => (descriptor.value ?? "").trim().length > 0)
+          .map(descriptor => (
+            <div
+              key={`arrow-static-${descriptor.key}`}
+              style={{
+                position: "fixed",
+                left: descriptor.screenX,
+                top: descriptor.screenY,
+                width: descriptor.boxWidth,
+                height: 18,
+                zIndex: 50,
+                transform: "translate(-50%, -50%)",
+                background: "var(--canvas-node)",
+                border: "1.4px solid var(--canvas-arrow)",
+                borderRadius: 6,
+                textAlign: "center",
+                boxShadow: "none",
+                fontSize: 11,
+                fontWeight: 600,
+                color: "var(--canvas-text)",
+                lineHeight: "18px",
+                pointerEvents: "none",
+                userSelect: "none",
+                padding: "0 4px",
+                fontFamily: "Inter, system-ui, sans-serif"
+              }}
+              title={descriptor.value}
+            >
+              {descriptor.value}
+            </div>
+          ))}
+      </>
+    );
+  }
 
   return (
     <>

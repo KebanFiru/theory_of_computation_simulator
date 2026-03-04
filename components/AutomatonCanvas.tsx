@@ -6,6 +6,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
   states,
   arrowPairs,
   arrowSelection,
+  showLiveTransitionLabels = true,
   selectionRect,
   savedDFAs,
   selectedDFAName,
@@ -72,6 +73,8 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     const canvasNodeStroke = getVar("--canvas-node-stroke", "#0f172a");
     const canvasText = getVar("--canvas-text", "#0f172a");
     const canvasTextSelected = getVar("--canvas-text-selected", "#ffffff");
+    const contrastLight = getVar("--accent-contrast", "#ffffff");
+    const contrastDark = getVar("--warning-contrast", "#0f172a");
     const selectionColor = getVar("--canvas-selection", "#ef4444");
     const savedColor = getVar("--canvas-saved", "#22c55e");
     const savedTextColor = getVar("--canvas-saved-text", "#16a34a");
@@ -79,6 +82,59 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     const arrowSelectedColor = getVar("--canvas-arrow-selected", "#2563eb");
     const previewColor = getVar("--canvas-preview", "#94a3b8");
     const shadowColor = getVar("--shadow-color", "rgba(15, 23, 42, 0.15)");
+
+    const parseColorToRgb = (value: string): { r: number; g: number; b: number } | null => {
+      const color = value.trim();
+      if (!color) return null;
+
+      if (color.startsWith("#")) {
+        const hex = color.slice(1);
+        if (hex.length === 3) {
+          const r = parseInt(hex[0] + hex[0], 16);
+          const g = parseInt(hex[1] + hex[1], 16);
+          const b = parseInt(hex[2] + hex[2], 16);
+          return { r, g, b };
+        }
+        if (hex.length === 6) {
+          const r = parseInt(hex.slice(0, 2), 16);
+          const g = parseInt(hex.slice(2, 4), 16);
+          const b = parseInt(hex.slice(4, 6), 16);
+          return { r, g, b };
+        }
+      }
+
+      const rgbMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      if (rgbMatch) {
+        return {
+          r: Number(rgbMatch[1]),
+          g: Number(rgbMatch[2]),
+          b: Number(rgbMatch[3])
+        };
+      }
+
+      return null;
+    };
+
+    const isDarkColor = (value: string) => {
+      const rgb = parseColorToRgb(value);
+      if (!rgb) return false;
+      const luminance = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+      return luminance < 0.55;
+    };
+
+    const getLabelPalette = (fillColor: string) => {
+      if (isDarkColor(fillColor)) {
+        return {
+          text: contrastLight,
+          outline: contrastDark
+        };
+      }
+      return {
+        text: contrastDark,
+        outline: contrastLight
+      };
+    };
+
     const stateColors: Record<string, string> = {
       red: getVar("--state-start", "#ef4444"),
       green: getVar("--state-normal", "#22c55e"),
@@ -159,11 +215,12 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       }
 
       // Draw label
+      const labelPalette = getLabelPalette(fillColor);
       ctx.save();
       ctx.font = "600 12px Inter, system-ui, sans-serif";
-      ctx.fillStyle = isSelected ? canvasTextSelected : canvasText;
-      ctx.strokeStyle = canvasBg;
-      ctx.lineWidth = 3;
+      ctx.fillStyle = labelPalette.text;
+      ctx.strokeStyle = labelPalette.outline;
+      ctx.lineWidth = 3.6;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.strokeText(`q${index}`, state.x, state.y);
@@ -276,6 +333,12 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       }
     });
 
+    drawTransitionLabels(ctx, arrowPairs, states, {
+      baseColor: showLiveTransitionLabels ? canvasText : "rgba(0, 0, 0, 0)",
+      bgColor: canvasNode,
+      borderColor: arrowColor
+    });
+
     // Draw selection rectangle if exists
     if (selectionRect) {
       ctx.strokeStyle = selectionColor;
@@ -337,6 +400,12 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         drawArrow(ctx, fromCircle, toCircle, arrowColor);
       });
 
+      drawTransitionLabels(ctx, snapshot.arrowPairs ?? [], snapshot.states, {
+        baseColor: canvasText,
+        bgColor: canvasNode,
+        borderColor: arrowColor
+      });
+
       snapshot.states.forEach((state, index) => {
         const strokeColor = state.color ? (stateColors[state.color] ?? canvasNodeStroke) : canvasNodeStroke;
         ctx.beginPath();
@@ -368,10 +437,11 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         }
 
         ctx.save();
+        const snapshotLabelPalette = getLabelPalette(canvasNode);
         ctx.font = "600 12px Inter, system-ui, sans-serif";
-        ctx.fillStyle = canvasText;
-        ctx.strokeStyle = canvasBg;
-        ctx.lineWidth = 3;
+        ctx.fillStyle = snapshotLabelPalette.text;
+        ctx.strokeStyle = snapshotLabelPalette.outline;
+        ctx.lineWidth = 3.6;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeText(`q${index}`, state.x, state.y);
@@ -420,10 +490,11 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         }
 
         ctx.save();
+        const previewLabelPalette = getLabelPalette(canvasNode);
         ctx.font = "600 12px Inter, system-ui, sans-serif";
-        ctx.fillStyle = canvasText;
-        ctx.strokeStyle = canvasBg;
-        ctx.lineWidth = 3;
+        ctx.fillStyle = previewLabelPalette.text;
+        ctx.strokeStyle = previewLabelPalette.outline;
+        ctx.lineWidth = 3.6;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.strokeText(`q${index}`, x, y);
@@ -465,10 +536,12 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     // Keep live state labels on top so arrows/overlays can't hide them
     states.forEach((state, index) => {
       const isSelected = arrowSelection.includes(index);
+      const fillColor = isSelected ? canvasNodeSelected : canvasNode;
+      const labelPalette = getLabelPalette(fillColor);
       ctx.save();
       ctx.font = "700 13px Inter, system-ui, sans-serif";
-      ctx.fillStyle = isSelected ? canvasTextSelected : canvasText;
-      ctx.strokeStyle = canvasBg;
+      ctx.fillStyle = labelPalette.text;
+      ctx.strokeStyle = labelPalette.outline;
       ctx.lineWidth = 4;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -490,7 +563,8 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     themeTick,
     previewStates,
     previewArrowPairs,
-    previewPosition
+    previewPosition,
+    showLiveTransitionLabels
   ]);
 
   function calculateParallelOffset(

@@ -9,6 +9,41 @@ import type { SelectionMenuProps } from '../types/ui';
 export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, tmFinalize, setTmFinalize, acceptState, setAcceptState, tmStateMode, setTmStateMode, tmAcceptMode, setTmAcceptMode, tmRejectMode, setTmRejectMode, tmTransitionMode, setTmTransitionMode, alphabetOwnerLabel, alphabetLocked, activeParentOverride}: SelectionMenuProps){
   const [activeParent, setActiveParent] = React.useState<"FA" | "TM">("FA");
 
+  const clearAllModes = React.useCallback(() => {
+    setStartgingState(false);
+    setState(false);
+    setAcceptState(false);
+    setRoad(false);
+    setFinalize(false);
+    setTmStateMode(false);
+    setTmAcceptMode(false);
+    setTmRejectMode(false);
+    setTmTransitionMode(false);
+    setTmFinalize(false);
+  }, [
+    setAcceptState,
+    setFinalize,
+    setRoad,
+    setStartgingState,
+    setState,
+    setTmAcceptMode,
+    setTmFinalize,
+    setTmRejectMode,
+    setTmStateMode,
+    setTmTransitionMode
+  ]);
+
+  const toggleExclusive = React.useCallback((active: boolean, setter: (value: boolean) => void) => {
+    const next = !active;
+    clearAllModes();
+    setter(next);
+  }, [clearAllModes]);
+
+  const handleParentChange = React.useCallback((nextParent: "FA" | "TM") => {
+    clearAllModes();
+    setActiveParent(nextParent);
+  }, [clearAllModes]);
+
   React.useEffect(() => {
     if (!activeParentOverride) return;
     setActiveParent(activeParentOverride);
@@ -38,14 +73,14 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                 <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5 w-fit">
                   <button
                     className={parentButtonClass(activeParent === "FA")}
-                    onClick={() => setActiveParent("FA")}
+                    onClick={() => handleParentChange("FA")}
                     title="Show FA tools"
                   >
                     FA
                   </button>
                   <button
                     className={parentButtonClass(activeParent === "TM")}
-                    onClick={() => setActiveParent("TM")}
+                    onClick={() => handleParentChange("TM")}
                     title="Show TM tools"
                   >
                     TM
@@ -72,7 +107,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                 <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5">
                   <button
                     className={buttonClass(startingState)}
-                    onClick={() => setStartgingState(!startingState)}
+                    onClick={() => toggleExclusive(startingState, setStartgingState)}
                     title="Add start state"
                   >
                     <CircleArrowRight size={16} />
@@ -80,7 +115,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(state)}
-                    onClick={() => setState(!state)}
+                    onClick={() => toggleExclusive(state, setState)}
                     title="Add state"
                   >
                     <Circle size={16} />
@@ -88,7 +123,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(acceptState)}
-                    onClick={() => setAcceptState(!acceptState)}
+                    onClick={() => toggleExclusive(acceptState, setAcceptState)}
                     title="Add accept state"
                   >
                     <CircleDot size={16} />
@@ -96,7 +131,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(road)}
-                    onClick={() => setRoad(!road)}
+                    onClick={() => toggleExclusive(road, setRoad)}
                     title="Add transition"
                   >
                     <MoveRightIcon size={16} />
@@ -104,7 +139,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(finalize)}
-                    onClick={() => setFinalize(!finalize)}
+                    onClick={() => toggleExclusive(finalize, setFinalize)}
                     title="Finalize DFA"
                   >
                     <Square size={16} />
@@ -117,7 +152,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                 <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-1.5">
                   <button
                     className={buttonClass(tmStateMode)}
-                    onClick={() => setTmStateMode(!tmStateMode)}
+                    onClick={() => toggleExclusive(tmStateMode, setTmStateMode)}
                     title="Add TM state"
                   >
                     <Circle size={16} />
@@ -125,7 +160,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(tmAcceptMode)}
-                    onClick={() => setTmAcceptMode(!tmAcceptMode)}
+                    onClick={() => toggleExclusive(tmAcceptMode, setTmAcceptMode)}
                     title="Add TM accept state"
                   >
                     <CircleDot size={16} />
@@ -133,7 +168,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(tmRejectMode)}
-                    onClick={() => setTmRejectMode(!tmRejectMode)}
+                    onClick={() => toggleExclusive(tmRejectMode, setTmRejectMode)}
                     title="Add TM reject state"
                   >
                     <ShieldX size={16} />
@@ -141,7 +176,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(tmTransitionMode)}
-                    onClick={() => setTmTransitionMode(!tmTransitionMode)}
+                    onClick={() => toggleExclusive(tmTransitionMode, setTmTransitionMode)}
                     title="Add TM transition"
                   >
                     <MoveRightIcon size={16} />
@@ -149,7 +184,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                   <button
                     className={buttonClass(tmFinalize)}
-                    onClick={() => setTmFinalize(!tmFinalize)}
+                    onClick={() => toggleExclusive(tmFinalize, setTmFinalize)}
                     title="Finalize TM"
                   >
                     <Square size={16} />

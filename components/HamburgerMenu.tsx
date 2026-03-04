@@ -17,6 +17,15 @@ export default function HamburgerMenu({
 }: HamburgerMenuProps) {
   const [open, setOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const isFirstRender = React.useRef(true);
+
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   const triggerImport = () => {
     fileInputRef.current?.click();
@@ -27,11 +36,7 @@ export default function HamburgerMenu({
       <button
         type="button"
         onClick={() => {
-          setOpen(value => {
-            const next = !value;
-            onOpenChange?.(next);
-            return next;
-          });
+          setOpen(value => !value);
         }}
         className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-overlay)] text-[var(--text)] shadow-lg transition hover:bg-[var(--surface-muted)]"
         aria-label={open ? "Close menu" : "Open menu"}

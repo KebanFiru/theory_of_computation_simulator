@@ -6,6 +6,11 @@ import { FiniteAutomaton } from "../lib/automata/index";
 
 const STORAGE_KEY = "cts-saved-dfas-v1";
 
+function areStringArraysEqual(left: string[], right: string[]) {
+  if (left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
+}
+
 export function useAutomatonManager() {
   const [states, setStates] = useState<State[]>([]);
   const [alphabet, setAlphabet] = useState<string[]>([]);
@@ -45,7 +50,7 @@ export function useAutomatonManager() {
   // Restore alphabet for a DFA
   const restoreAlphabet = useCallback((dfaName: string) => {
     if (dfaAlphabets[dfaName]) {
-      setAlphabet(dfaAlphabets[dfaName]);
+      setAlphabet([...dfaAlphabets[dfaName]]);
     }
   }, [dfaAlphabets]);
 
@@ -145,6 +150,7 @@ export function useAutomatonManager() {
         }
       }));
       setTransitionTable(table);
+      setAlphabet([...trimmedAlphabet]);
 
       // Keep states and arrows visible after saving
       // (Don't remove them from the canvas)
@@ -162,7 +168,13 @@ export function useAutomatonManager() {
   }, []);
 
   const updateDfaAlphabet = useCallback((dfaName: string, nextAlphabet: string[]) => {
-    setDfaAlphabets(prev => ({ ...prev, [dfaName]: [...nextAlphabet] }));
+    setDfaAlphabets(prev => {
+      const currentAlphabet = prev[dfaName] ?? [];
+      if (areStringArraysEqual(currentAlphabet, nextAlphabet)) {
+        return prev;
+      }
+      return { ...prev, [dfaName]: [...nextAlphabet] };
+    });
   }, []);
 
   const deleteDFAs = useCallback((names: string[]) => {

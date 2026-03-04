@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { State } from "../lib/util-classes/state";
 import { Transition } from "../lib/util-classes/transition";
 import type { UseAutomatonEditFlowParams } from "../types/hooks";
@@ -26,6 +26,8 @@ export function useAutomatonEditFlow({
   forceRefresh,
   showToast
 }: UseAutomatonEditFlowParams) {
+  const initializedEditNameRef = useRef<string | null>(null);
+
   const closeNameFlow = useCallback(() => {
     setShowNameDialog(false);
     setDfaName("");
@@ -90,24 +92,33 @@ export function useAutomatonEditFlow({
   useEffect(() => {
     const handler = (e: any) => {
       const nextName = e.detail?.name;
-      if (nextName && dfaManager.dfaAlphabets[nextName] && dfaManager.savedDFAs[nextName]) {
-        dfaManager.restoreAlphabet(nextName);
-        const snapshot = dfaManager.savedDFAs[nextName].snapshot;
-        if (snapshot) {
-          dfaManager.setStates(snapshot.states.map((st: State) => State.from(st)));
-          dfaManager.setArrowPairs(snapshot.arrowPairs.map(pair => Transition.from(pair)));
-          setTransitionSlots(buildTransitionSlotsFromPairs(snapshot.arrowPairs));
-        } else {
-          dfaManager.setStates([]);
-          dfaManager.setArrowPairs([]);
-          setTransitionSlots({});
-        }
-        dfaManager.setArrowSelection([]);
-        setEditMode(true);
-        setEditingDFAName(nextName);
-        const isTmSnapshot = snapshot?.states?.some((st: State) => st.color.startsWith("tm-")) ?? false;
-        setEditingParentMode(isTmSnapshot ? "TM" : "FA");
+      if (!nextName || !dfaManager.savedDFAs[nextName]) return;
+
+      const saved = dfaManager.savedDFAs[nextName];
+      const persistedAlphabet = dfaManager.dfaAlphabets[nextName];
+      const fallbackAlphabet = (saved.table?.[0] ?? []).slice(1).map(symbol => String(symbol));
+      const alphabetToUse = persistedAlphabet ? [...persistedAlphabet] : fallbackAlphabet;
+
+      dfaManager.setAlphabet(alphabetToUse);
+      if (!persistedAlphabet) {
+        dfaManager.updateDfaAlphabet(nextName, alphabetToUse);
       }
+
+      const snapshot = saved.snapshot;
+      if (snapshot) {
+        dfaManager.setStates(snapshot.states.map((st: State) => State.from(st)));
+        dfaManager.setArrowPairs(snapshot.arrowPairs.map(pair => Transition.from(pair)));
+        setTransitionSlots(buildTransitionSlotsFromPairs(snapshot.arrowPairs));
+      } else {
+        dfaManager.setStates([]);
+        dfaManager.setArrowPairs([]);
+        setTransitionSlots({});
+      }
+      dfaManager.setArrowSelection([]);
+      setEditMode(true);
+      setEditingDFAName(nextName);
+      const isTmSnapshot = snapshot?.states?.some((st: State) => st.color.startsWith("tm-")) ?? false;
+      setEditingParentMode(isTmSnapshot ? "TM" : "FA");
     };
 
     window.addEventListener("editDFA", handler);
@@ -115,27 +126,36 @@ export function useAutomatonEditFlow({
   }, [buildTransitionSlotsFromPairs, dfaManager, setEditMode, setEditingDFAName, setEditingParentMode, setTransitionSlots]);
 
   useEffect(() => {
-    if (editMode && editingDFAName) {
-      dfaManager.updateDfaAlphabet(editingDFAName, dfaManager.alphabet);
-      const bounds = dfaManager.savedDFAs[editingDFAName]?.bounds;
-      if (bounds) {
-        dfaManager.saveDFA(editingDFAName, bounds, {
-          forceOverwrite: true,
-          onError: message => showToast(message, "error")
-        });
-      } else if (dfaManager.states.length > 0) {
-        const minX = Math.min(...dfaManager.states.map(s => s.x));
-        const maxX = Math.max(...dfaManager.states.map(s => s.x));
-        const minY = Math.min(...dfaManager.states.map(s => s.y));
-        const maxY = Math.max(...dfaManager.states.map(s => s.y));
-        const padding = 24;
-        dfaManager.saveDFA(editingDFAName, { x1: minX - padding, y1: minY - padding, x2: maxX + padding, y2: maxY + padding }, {
-          forceOverwrite: true,
-          onError: message => showToast(message, "error")
-        });
-      }
-      forceRefresh();
+    if (!editMode || !editingDFAName) {
+      initializedEditNameRef.current = null;
+      return;
     }
+
+    if (initializedEditNameRef.current === editingDFAName) {
+      return;
+    }
+
+    initializedEditNameRef.current = editingDFAName;
+
+    dfaManager.updateDfaAlphabet(editingDFAName, dfaManager.alphabet);
+    const bounds = dfaManager.savedDFAs[editingDFAName]?.bounds;
+    if (bounds) {
+      dfaManager.saveDFA(editingDFAName, bounds, {
+        forceOverwrite: true,
+        onError: message => showToast(message, "error")
+      });
+    } else if (dfaManager.states.length > 0) {
+      const minX = Math.min(...dfaManager.states.map(s => s.x));
+      const maxX = Math.max(...dfaManager.states.map(s => s.x));
+      const minY = Math.min(...dfaManager.states.map(s => s.y));
+      const maxY = Math.max(...dfaManager.states.map(s => s.y));
+      const padding = 24;
+      dfaManager.saveDFA(editingDFAName, { x1: minX - padding, y1: minY - padding, x2: maxX + padding, y2: maxY + padding }, {
+        forceOverwrite: true,
+        onError: message => showToast(message, "error")
+      });
+    }
+    forceRefresh();
   }, [dfaManager, editMode, editingDFAName, forceRefresh, showToast]);
 
   const handleDoneEditing = useCallback(() => {
