@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { State } from "../lib/util-classes/state";
 import { Transition } from "../lib/util-classes/transition";
 import { SavedFA, buildNFAFromRegex } from "../lib/automata/index";
-import { CFG, DFA, ENFA, GNFA } from "../lib/models";
+import { CFG, DFA,  GNFA } from "../lib/models";
 import type { UseAutomatonWorkbenchActionsParams } from "../types/hooks";
 
 export function useAutomatonWorkbenchActions({
@@ -287,28 +287,6 @@ export function useAutomatonWorkbenchActions({
     showToast("Move cursor and click to place created GNFA.", "info");
   }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, selectedDFAName, setImportCursor, setImportPreview, showToast]);
 
-  const handleCreateEnfa = useCallback(() => {
-    if (!selectedDFAName) {
-      showToast("Select an NFA/FA first to create ε-NFA.", "info");
-      return;
-    }
-    const source = dfaManager.savedDFAs[selectedDFAName];
-    if (!source) {
-      showToast("Selected FA not found.", "error");
-      return;
-    }
-
-    const sourceAlphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? (source.table?.[0] ?? []).slice(1);
-    const enfa = ENFA.fromSavedFA(source, sourceAlphabet);
-    const sourceBounds = source.bounds;
-    setImportPreview(enfa.toSavedPreview(selectedDFAName));
-    setImportCursor({
-      x: Math.max(sourceBounds.x1, sourceBounds.x2) + 440,
-      y: (sourceBounds.y1 + sourceBounds.y2) / 2
-    });
-    showToast("Move cursor and click to place created ε-NFA.", "info");
-  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, selectedDFAName, setImportCursor, setImportPreview, showToast]);
-
   const handleCreateCfg = useCallback(() => {
     const cfg = CFG.createDefault();
     addTextArtifact("CFG", "CFG", JSON.stringify(cfg.toJSON(), null, 2));
@@ -394,7 +372,6 @@ export function useAutomatonWorkbenchActions({
     handleCreateRegexAutomaton,
     handleConvertSelectedNfaToDfa,
     handleCreateGnfa,
-    handleCreateEnfa,
     handleCreateCfg,
     handleImportJson
   };

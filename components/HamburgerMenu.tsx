@@ -11,7 +11,6 @@ export default function HamburgerMenu({
   onRegexToFA,
   onConvertSelectedNfaToDfa,
   onCreateGnfa,
-  onCreateEnfa,
   onCreateCfg,
   onOpenChange
 }: HamburgerMenuProps) {
@@ -81,14 +80,6 @@ export default function HamburgerMenu({
             >
               Create GNFA
               <Workflow size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={onCreateEnfa}
-              className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
-            >
-              Create ε-NFA
-              <Binary size={16} />
             </button>
             <button
               type="button"

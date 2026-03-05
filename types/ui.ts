@@ -10,7 +10,6 @@ export type HamburgerMenuProps = {
   onRegexToFA: () => void;
   onConvertSelectedNfaToDfa: () => void;
   onCreateGnfa: () => void;
-  onCreateEnfa: () => void;
   onCreateCfg: () => void;
   onOpenChange?: (open: boolean) => void;
 };
