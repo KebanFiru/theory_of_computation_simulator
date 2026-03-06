@@ -48,7 +48,6 @@ export default function Canvas() {
   const [acceptState, setAcceptState] = useState(false);
   const [tmStateMode, setTmStateMode] = useState(false);
   const [tmAcceptMode, setTmAcceptMode] = useState(false);
-  const [tmRejectMode, setTmRejectMode] = useState(false);
   const [tmTransitionMode, setTmTransitionMode] = useState(false);
   const [road, setRoad] = useState(false);
   const [finalize, setFinalize] = useState(false);
@@ -238,8 +237,6 @@ export default function Canvas() {
     setTmStateMode,
     tmAcceptMode,
     setTmAcceptMode,
-    tmRejectMode,
-    setTmRejectMode,
     showToast
   });
 
@@ -257,8 +254,6 @@ export default function Canvas() {
         setTmStateMode={setTmStateMode}
         tmAcceptMode={tmAcceptMode}
         setTmAcceptMode={setTmAcceptMode}
-        tmRejectMode={tmRejectMode}
-        setTmRejectMode={setTmRejectMode}
         tmTransitionMode={tmTransitionMode}
         setTmTransitionMode={setTmTransitionMode}
         road={road}
@@ -270,7 +265,7 @@ export default function Canvas() {
         tmFinalize={tmFinalize}
         setTmFinalize={setTmFinalize}
         activeParentOverride={editingParentMode}
-        alphabetOwnerLabel={editMode && editingDFAName ? editingDFAName : "Unsaved FA"}
+        alphabetOwnerLabel={editMode && editingDFAName ? editingDFAName : selectedDFAName ?? "Unsaved FA"}
         alphabetLocked={editMode ? false : false}
       />
 
@@ -306,7 +301,6 @@ export default function Canvas() {
         state={state}
         tmStateMode={tmStateMode}
         tmAcceptMode={tmAcceptMode}
-        tmRejectMode={tmRejectMode}
         tmTransitionMode={tmTransitionMode}
         selectionMode={selection.selectionMode}
         renderTick={viewportTick}

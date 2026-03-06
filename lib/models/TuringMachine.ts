@@ -1,14 +1,29 @@
 import type { TmTransition } from "../../types/turing";
 
+/**
+ * Turing Machine — formal 7-tuple per Wikipedia:
+ * M = ⟨Q, Γ, b, Σ, δ, q0, F⟩
+ *
+ * Q          — finite non-empty set of states
+ * Γ          — finite non-empty tape alphabet
+ * b ∈ Γ      — blank symbol
+ * Σ ⊆ Γ\{b}  — input alphabet
+ * δ          — partial transition function (Q\F) × Γ ⇀ Q × Γ × {L,R,N}
+ * q0 ∈ Q     — initial state
+ * F ⊆ Q      — set of final (accepting) states
+ *
+ * The machine halts (and implicitly rejects) when δ is undefined
+ * for the current (state, symbol) pair and the state is not in F.
+ * There are no explicit reject states in this definition.
+ */
 export class TuringMachine {
-  readonly states: string[];
-  readonly inputAlphabet: string[];
-  readonly tapeAlphabet: string[];
-  readonly blankSymbol: string;
-  readonly startState: string;
-  readonly acceptStates: string[];
-  readonly rejectStates: string[];
-  readonly transitions: TmTransition[];
+  readonly states: string[];          // Q
+  readonly inputAlphabet: string[];   // Σ
+  readonly tapeAlphabet: string[];    // Γ
+  readonly blankSymbol: string;       // b
+  readonly startState: string;        // q0
+  readonly finalStates: string[];     // F (accepting/halting states)
+  readonly transitions: TmTransition[]; // δ
 
   constructor(args: {
     states: string[];
@@ -16,8 +31,7 @@ export class TuringMachine {
     tapeAlphabet: string[];
     blankSymbol: string;
     startState: string;
-    acceptStates: string[];
-    rejectStates: string[];
+    finalStates: string[];
     transitions: TmTransition[];
   }) {
     this.states = args.states;
@@ -25,24 +39,22 @@ export class TuringMachine {
     this.tapeAlphabet = args.tapeAlphabet;
     this.blankSymbol = args.blankSymbol;
     this.startState = args.startState;
-    this.acceptStates = args.acceptStates;
-    this.rejectStates = args.rejectStates;
+    this.finalStates = args.finalStates;
     this.transitions = args.transitions;
   }
 
   static createDefault() {
     return new TuringMachine({
-      states: ["q0", "qa", "qr"],
+      states: ["q0", "qaccept"],
       inputAlphabet: ["0", "1"],
       tapeAlphabet: ["0", "1", "_"],
       blankSymbol: "_",
       startState: "q0",
-      acceptStates: ["qa"],
-      rejectStates: ["qr"],
+      finalStates: ["qaccept"],
       transitions: [
         { from: "q0", read: "0", to: "q0", write: "0", move: "R" },
         { from: "q0", read: "1", to: "q0", write: "1", move: "R" },
-        { from: "q0", read: "_", to: "qa", write: "_", move: "S" }
+        { from: "q0", read: "_", to: "qaccept", write: "_", move: "N" }
       ]
     });
   }
@@ -50,14 +62,14 @@ export class TuringMachine {
   toJSON() {
     return {
       type: "TuringMachine",
-      states: this.states,
-      inputAlphabet: this.inputAlphabet,
-      tapeAlphabet: this.tapeAlphabet,
-      blankSymbol: this.blankSymbol,
-      startState: this.startState,
-      acceptStates: this.acceptStates,
-      rejectStates: this.rejectStates,
-      transitions: this.transitions
+      // 7-tuple components labeled per Wikipedia
+      Q: this.states,
+      Gamma: this.tapeAlphabet,
+      b: this.blankSymbol,
+      Sigma: this.inputAlphabet,
+      delta: this.transitions,
+      q0: this.startState,
+      F: this.finalStates
     };
   }
 }

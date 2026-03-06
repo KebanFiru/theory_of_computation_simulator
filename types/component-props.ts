@@ -19,8 +19,6 @@ export type SelectionMenuType = {
   setTmStateMode: (value: boolean) => void;
   tmAcceptMode: boolean;
   setTmAcceptMode: (value: boolean) => void;
-  tmRejectMode: boolean;
-  setTmRejectMode: (value: boolean) => void;
   tmTransitionMode: boolean;
   setTmTransitionMode: (value: boolean) => void;
   alphabet: string[];
@@ -47,7 +45,6 @@ export interface AutomatonCanvasProps {
   state: boolean;
   tmStateMode: boolean;
   tmAcceptMode: boolean;
-  tmRejectMode: boolean;
   tmTransitionMode: boolean;
   selectionMode: boolean;
   renderTick: number;

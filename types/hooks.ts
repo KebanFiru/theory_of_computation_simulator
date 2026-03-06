@@ -159,8 +159,6 @@ export type UseCanvasClickHandlerParams = {
   setTmStateMode: React.Dispatch<React.SetStateAction<boolean>>;
   tmAcceptMode: boolean;
   setTmAcceptMode: React.Dispatch<React.SetStateAction<boolean>>;
-  tmRejectMode: boolean;
-  setTmRejectMode: React.Dispatch<React.SetStateAction<boolean>>;
   showToast: (message: string, type?: "error" | "success" | "info") => void;
 };
 

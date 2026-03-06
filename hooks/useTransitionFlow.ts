@@ -35,9 +35,10 @@ export function useTransitionFlow({
 
   const handleTmTransitionConfirm = useCallback(() => {
     const label = tmTransitionDialog.value.trim();
-    const tmPattern = /^(.+)\/(.+),([LRS])$/;
+    // Pattern: read/write,direction  —  direction is L, R, or N (None/Stay) per Wikipedia
+    const tmPattern = /^(.+)\/(.+),([LRN])$/;
     if (!tmPattern.test(label)) {
-      showToast("Invalid TM transition. Use read/write,move format (e.g. 0/1,R).", "error");
+      showToast("Invalid TM transition. Use read/write,direction format (e.g. 0/1,R or _/_,N).", "error");
       return;
     }
 

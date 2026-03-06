@@ -38,8 +38,6 @@ export type SelectionMenuProps = {
   setTmStateMode: (value: boolean) => void;
   tmAcceptMode: boolean;
   setTmAcceptMode: (value: boolean) => void;
-  tmRejectMode: boolean;
-  setTmRejectMode: (value: boolean) => void;
   tmTransitionMode: boolean;
   setTmTransitionMode: (value: boolean) => void;
   alphabet: string[];
