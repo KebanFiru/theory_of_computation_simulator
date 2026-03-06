@@ -70,6 +70,59 @@ export class GNFA {
     return GNFA.fromAutomaton(SavedFA.toAutomaton(savedFA, fallbackAlphabet));
   }
 
+  toRegex(): string {
+    const wrapIfUnion = (r: string): string => {
+      if (!r || r === "∅") return r;
+      if (r.startsWith("(") && r.endsWith(")")) return r;
+      if (r.includes("|")) return `(${r})`;
+      return r;
+    };
+
+    const trans = new Map<string, Map<string, string>>();
+    const setT = (from: string, to: string, label: string) => {
+      if (!trans.has(from)) trans.set(from, new Map());
+      trans.get(from)!.set(to, label);
+    };
+    this.transitions.forEach((targets, from) => {
+      targets.forEach((label, to) => setT(from, to, label));
+    });
+
+    const innerStates = this.states.filter(s => s !== this.startState && s !== this.acceptState);
+
+    for (const qRip of innerStates) {
+      const predecessors: string[] = [];
+      trans.forEach((_t, from) => {
+        if (from !== qRip && trans.get(from)?.has(qRip)) predecessors.push(from);
+      });
+      const successors: string[] = [];
+      trans.get(qRip)?.forEach((_l, to) => {
+        if (to !== qRip) successors.push(to);
+      });
+
+      const selfLoopLabel = trans.get(qRip)?.get(qRip);
+      const selfRegex = selfLoopLabel && selfLoopLabel !== "∅"
+        ? `${wrapIfUnion(selfLoopLabel)}*`
+        : "";
+
+      for (const qi of predecessors) {
+        for (const qj of successors) {
+          const r1 = trans.get(qi)?.get(qRip) ?? "";
+          const r3 = trans.get(qRip)?.get(qj) ?? "";
+          if (!r1 || r1 === "∅" || !r3 || r3 === "∅") continue;
+          const parts = [wrapIfUnion(r1), selfRegex, wrapIfUnion(r3)].filter(Boolean);
+          const newPath = parts.join("");
+          const existing = trans.get(qi)?.get(qj);
+          setT(qi, qj, unionRegex(existing, newPath));
+        }
+      }
+
+      trans.delete(qRip);
+      trans.forEach(targets => targets.delete(qRip));
+    }
+
+    return trans.get(this.startState)?.get(this.acceptState) ?? "∅";
+  }
+
   toCanvasPayload(origin: { x: number; y: number } = { x: 0, y: 0 }) {
     const labelToIndex = new Map<string, number>();
     const stateCount = this.states.length;

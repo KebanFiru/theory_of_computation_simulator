@@ -32,12 +32,21 @@ export type OverwriteDialogState = {
   selectionRect: { x1: number; y1: number; x2: number; y2: number } | null;
 };
 
+export type FaTransitionDialogState = {
+  isOpen: boolean;
+  from: number;
+  to: number;
+  symbols: string[];
+  custom: string;
+};
+
 export type TextArtifact = {
   id: string;
   name: string;
   type: "CFG";
   content: string;
   position: { x: number; y: number };
+  relatedDFAName?: string;
 };
 
 export type ImportPreviewState = {
@@ -57,6 +66,7 @@ export type DraggedSavedFAState = {
   bounds: { x1: number; y1: number; x2: number; y2: number };
   snapshotStates: State[];
   liveStateSnapshot: Array<{ index: number; x: number; y: number }>;
+  artifactSnapshot: Array<{ id: string; x: number; y: number }>;
 } | null;
 
 export type EditModeBannerProps = {
@@ -69,16 +79,20 @@ export type CanvasDialogsProps = {
   regexDialog: RegexDialogState;
   transitionCountDialog: TransitionCountDialogState;
   tmTransitionDialog: TmTransitionDialogState;
+  faTransitionDialog: FaTransitionDialogState;
   overwriteDialog: OverwriteDialogState;
   setRegexDialog: React.Dispatch<React.SetStateAction<RegexDialogState>>;
   setTransitionCountDialog: React.Dispatch<React.SetStateAction<TransitionCountDialogState>>;
   setTmTransitionDialog: React.Dispatch<React.SetStateAction<TmTransitionDialogState>>;
+  setFaTransitionDialog: React.Dispatch<React.SetStateAction<FaTransitionDialogState>>;
   setOverwriteDialog: React.Dispatch<React.SetStateAction<OverwriteDialogState>>;
   onCreateRegexAutomaton: () => void;
   onCloseRegexDialog: () => void;
   onTransitionCountConfirm: () => void;
   onTmTransitionConfirm: () => void;
+  onFaTransitionConfirm: () => void;
   onOverwriteConfirm: () => void;
+  faTransitionAlphabet: string[];
 };
 
 export type FloatingArtifactsProps = {

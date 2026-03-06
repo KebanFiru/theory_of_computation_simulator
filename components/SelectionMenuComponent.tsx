@@ -2,7 +2,7 @@
 
 import React from 'react';
 import AlphabetComboBox from './AlphabetComboBox';
-import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot, ShieldX } from 'lucide-react';
+import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot } from 'lucide-react';
 
 import type { SelectionMenuProps } from '../types/ui';  
 
@@ -87,6 +87,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                 </div>
 
+              {activeParent === "FA" && (
                 <div className="flex items-center gap-2 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-2">
                   {alphabetOwnerLabel && (
                     <span className="hidden md:inline text-xs font-semibold text-[var(--text-subtle)]">
@@ -101,6 +102,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                     disabled={alphabetLocked}
                   />
                 </div>
+              )}
               </div>
 
               {activeParent === "FA" && (
@@ -161,17 +163,17 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   <button
                     className={buttonClass(tmAcceptMode)}
                     onClick={() => toggleExclusive(tmAcceptMode, setTmAcceptMode)}
-                    title="Add TM accept state"
+                    title="Add TM final state (F \u2014 accepting)"
                   >
                     <CircleDot size={16} />
-                    <span>Accept</span>
+                    <span>Final</span>
                   </button>
                   <button
                     className={buttonClass(tmRejectMode)}
                     onClick={() => toggleExclusive(tmRejectMode, setTmRejectMode)}
                     title="Add TM reject state"
                   >
-                    <ShieldX size={16} />
+                    <Circle size={16} />
                     <span>Reject</span>
                   </button>
                   <button

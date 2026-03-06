@@ -78,7 +78,7 @@ export default function HamburgerMenu({
               onClick={onCreateGnfa}
               className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-semibold text-[var(--text)] transition hover:bg-[var(--surface-muted)]"
             >
-              Create GNFA
+              FA → GNFA
               <Workflow size={16} />
             </button>
             <button

@@ -13,8 +13,12 @@ export type TransitionInputDescriptor = {
 };
 
 export type SavedFACardView = {
-  automatonType: "DFA" | "NFA";
-  automatonRegex: string;
+  automatonType: "DFA" | "NFA" | "TM";
+  summaryTitle: string;
+  summaryValue: string;
+  table: string[][];
+  testLabel: string;
+  testPlaceholder: string;
   testResult: { status: string; detail: string };
   left: number;
   top: number;

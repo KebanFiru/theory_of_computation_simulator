@@ -68,6 +68,7 @@ export default function ArrowInputFields({
           ))}
       </>
     );
+
   }
 
   return (
@@ -131,7 +132,7 @@ export default function ArrowInputFields({
               }}
               className="focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
               value={descriptor.value}
-              maxLength={descriptor.isTmTransition ? 24 : 1}
+              maxLength={descriptor.isTmTransition ? 120 : 1}
               onMouseDown={e => e.stopPropagation()}
               onChange={e => {
                 const val = e.target.value;

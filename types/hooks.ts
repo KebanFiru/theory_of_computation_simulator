@@ -4,6 +4,7 @@ import type { Transition } from "../lib/util-classes/transition";
 import type { SavedDFAs } from "./domain";
 import type {
   DraggedSavedFAState,
+  FaTransitionDialogState,
   ImportPreviewState,
   OverwriteDialogState,
   RegexDialogState,
@@ -97,6 +98,8 @@ export type UseCanvasPointerHandlersParams = {
   importPreview: ImportPreviewState;
   setImportCursor: React.Dispatch<React.SetStateAction<CanvasPoint | null>>;
   setLastCanvasPos: React.Dispatch<React.SetStateAction<CanvasPoint | null>>;
+  textArtifacts: TextArtifact[];
+  setTextArtifacts: React.Dispatch<React.SetStateAction<TextArtifact[]>>;
 };
 
 export type CanvasClickSelectionApi = {
@@ -149,6 +152,7 @@ export type UseCanvasClickHandlerParams = {
   setTransitionCountDialog: React.Dispatch<React.SetStateAction<TransitionCountDialogState>>;
   tmTransitionMode: boolean;
   setTmTransitionDialog: React.Dispatch<React.SetStateAction<TmTransitionDialogState>>;
+  setFaTransitionDialog: React.Dispatch<React.SetStateAction<FaTransitionDialogState>>;
   startingState: boolean;
   setStartgingState: React.Dispatch<React.SetStateAction<boolean>>;
   state: boolean;
@@ -193,6 +197,7 @@ export type AutomatonWorkbenchManagerApi = {
 export type UseAutomatonWorkbenchActionsParams = {
   dfaManager: AutomatonWorkbenchManagerApi;
   selectedDFAName: string | null;
+  scale: number;
   setSelectedDFAName: React.Dispatch<React.SetStateAction<string | null>>;
   setImportPreview: React.Dispatch<React.SetStateAction<ImportPreviewState>>;
   setImportCursor: React.Dispatch<React.SetStateAction<CanvasPoint | null>>;
@@ -213,8 +218,10 @@ export type AutomatonEditManagerApi = {
   dfaAlphabets: { [name: string]: string[] };
   savedDFAs: SavedDFAs;
   states: State[];
+  arrowPairs: Transition[];
   alphabet: string[];
   restoreAlphabet: (dfaName: string) => void;
+  clearAlphabet: () => void;
   setAlphabet: React.Dispatch<React.SetStateAction<string[]>>;
   setStates: React.Dispatch<React.SetStateAction<State[]>>;
   setArrowPairs: React.Dispatch<React.SetStateAction<Transition[]>>;
@@ -264,6 +271,8 @@ export type UseTransitionFlowParams = {
   setTransitionCountDialog: React.Dispatch<React.SetStateAction<TransitionCountDialogState>>;
   tmTransitionDialog: TmTransitionDialogState;
   setTmTransitionDialog: React.Dispatch<React.SetStateAction<TmTransitionDialogState>>;
+  faTransitionDialog: FaTransitionDialogState;
+  setFaTransitionDialog: React.Dispatch<React.SetStateAction<FaTransitionDialogState>>;
   setRoad: React.Dispatch<React.SetStateAction<boolean>>;
   showToast: (message: string, type?: "error" | "success" | "info") => void;
 };

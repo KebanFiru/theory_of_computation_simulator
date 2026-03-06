@@ -49,9 +49,46 @@ export function useAutomatonEditFlow({
       onError: message => showToast(message, "error")
     });
     if (!success) return;
+
+    const minX = Math.min(selectionRect.x1, selectionRect.x2);
+    const maxX = Math.max(selectionRect.x1, selectionRect.x2);
+    const minY = Math.min(selectionRect.y1, selectionRect.y2);
+    const maxY = Math.max(selectionRect.y1, selectionRect.y2);
+
+    const selectedIndexSet = new Set<number>();
+    dfaManager.states.forEach((state, index) => {
+      if (state.x >= minX && state.x <= maxX && state.y >= minY && state.y <= maxY) {
+        selectedIndexSet.add(index);
+      }
+    });
+
+    if (selectedIndexSet.size > 0) {
+      const indexMap = new Map<number, number>();
+      const nextStates: State[] = [];
+
+      dfaManager.states.forEach((state, index) => {
+        if (selectedIndexSet.has(index)) return;
+        indexMap.set(index, nextStates.length);
+        nextStates.push(state);
+      });
+
+      const nextArrowPairs = dfaManager.arrowPairs
+        .filter(pair => !selectedIndexSet.has(pair.from) && !selectedIndexSet.has(pair.to))
+        .map(pair => pair.withEndpoints(indexMap.get(pair.from) ?? pair.from, indexMap.get(pair.to) ?? pair.to));
+
+      dfaManager.setStates(nextStates);
+      dfaManager.setArrowPairs(nextArrowPairs);
+      dfaManager.setArrowSelection([]);
+      setTransitionSlots(buildTransitionSlotsFromPairs(nextArrowPairs));
+
+      if (nextStates.length === 0) {
+        dfaManager.clearAlphabet();
+      }
+    }
+
     showToast(mode === "TM" ? `Saved TM as ${name}.` : `Saved FA as ${name}.`, "success");
     closeNameFlow();
-  }, [closeNameFlow, dfaManager, showToast]);
+  }, [buildTransitionSlotsFromPairs, closeNameFlow, dfaManager, setTransitionSlots, showToast]);
 
   const handleSaveDFA = useCallback(() => {
     if (!selection.selectionRect) return;
@@ -75,10 +112,8 @@ export function useAutomatonEditFlow({
   }, [dfaName, dfaManager.savedDFAs, nameDialogMode, saveSelectionWithName, selection.selectionRect, setOverwriteDialog, showToast]);
 
   const handleCancelDialog = useCallback(() => {
-    setShowNameDialog(false);
-    setDfaName("");
-    setNameDialogMode("FA");
-  }, [setDfaName, setNameDialogMode, setShowNameDialog]);
+    closeNameFlow();
+  }, [closeNameFlow]);
 
   const handleOverwriteConfirm = useCallback(() => {
     if (!overwriteDialog.selectionRect) {
@@ -182,10 +217,15 @@ export function useAutomatonEditFlow({
         onError: message => showToast(message, "error")
       });
     }
+    dfaManager.setStates([]);
+    dfaManager.setArrowPairs([]);
+    dfaManager.setArrowSelection([]);
+    dfaManager.clearAlphabet();
+    setTransitionSlots({});
     setEditMode(false);
     setEditingDFAName(null);
     setEditingParentMode(null);
-  }, [dfaManager, editingDFAName, setEditMode, setEditingDFAName, setEditingParentMode, showToast]);
+  }, [dfaManager, editingDFAName, setEditMode, setEditingDFAName, setEditingParentMode, setTransitionSlots, showToast]);
 
   return {
     handleSaveDFA,

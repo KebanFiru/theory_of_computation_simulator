@@ -59,6 +59,26 @@ export interface AutomatonCanvasProps {
   onDoubleClick: (e: React.MouseEvent) => void;
 }
 
+export interface AutomatonCanvasRendererProps {
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  states: State[];
+  arrowPairs: Transition[];
+  arrowSelection: number[];
+  showLiveTransitionLabels: boolean;
+  selectionRect: SelectionRect;
+  savedDFAs: SavedDFAs;
+  selectedDFAName?: string | null;
+  editMode?: boolean;
+  editingDFAName?: string | null;
+  previewStates?: State[] | null;
+  previewArrowPairs?: Transition[] | null;
+  previewPosition?: { x: number; y: number } | null;
+  offset: Offset;
+  scale: number;
+  renderTick: number;
+  themeTick: number;
+}
+
 export interface ArrowInputFieldsProps {
   arrowPairs: Transition[];
   states: State[];

@@ -27,6 +27,7 @@ export function useCanvasClickHandler({
   setRoadSelection,
   transitionSlots,
   setTransitionCountDialog,
+  setFaTransitionDialog,
   tmTransitionMode,
   setTmTransitionDialog,
   startingState,
@@ -143,7 +144,7 @@ export function useCanvasClickHandler({
       setSelectedDFAName(null);
     }
 
-    if (!road) {
+    if (!road && !tmTransitionMode) {
       const hitRadius = 10;
       let hitTransition: { from: number; to: number } | null = null;
 
@@ -190,10 +191,6 @@ export function useCanvasClickHandler({
       );
 
       if (clickedCircleIndex !== -1) {
-        if (dfaManager.alphabet.length === 0) {
-          showToast("Please set the alphabet size first.", "error");
-          return;
-        }
         if (roadSelection === null) {
           setRoadSelection(clickedCircleIndex);
           dfaManager.setArrowSelection([clickedCircleIndex]);
@@ -208,24 +205,7 @@ export function useCanvasClickHandler({
         setRoadSelection(null);
         dfaManager.setArrowSelection([]);
 
-        if (!transitionSlots[slotKey]) {
-          setTransitionCountDialog({
-            isOpen: true,
-            from,
-            to,
-            max: dfaManager.alphabet.length,
-            value: "1"
-          });
-          return;
-        }
-
-        const transitionLimit = transitionSlots[slotKey] ?? dfaManager.alphabet.length;
-        if (arrowsBetween.length >= transitionLimit) {
-          showToast("You can't add more arrows than the transition limit.", "error");
-          return;
-        }
-        dfaManager.setArrowPairs(pairs => [...pairs, Transition.create(from, to)]);
-        setRoad(false);
+        setFaTransitionDialog({ isOpen: true, from, to, symbols: [], custom: "" });
         return;
       }
 
@@ -241,9 +221,23 @@ export function useCanvasClickHandler({
       );
 
       if (clickedCircleIndex !== -1) {
+        const clickedState = dfaManager.states[clickedCircleIndex];
+        if (!clickedState?.color.startsWith("tm-")) {
+          showToast("TM transitions can only connect TM states.", "error");
+          return;
+        }
+
         if (roadSelection === null) {
           setRoadSelection(clickedCircleIndex);
           dfaManager.setArrowSelection([clickedCircleIndex]);
+          return;
+        }
+
+        const fromState = dfaManager.states[roadSelection];
+        if (!fromState?.color.startsWith("tm-")) {
+          setRoadSelection(null);
+          dfaManager.setArrowSelection([]);
+          showToast("TM transitions can only connect TM states.", "error");
           return;
         }
 
@@ -315,6 +309,7 @@ export function useCanvasClickHandler({
     setAcceptState,
     setEditMode,
     setEditingDFAName,
+    setFaTransitionDialog,
     setImportCursor,
     setImportPreview,
     setRoad,

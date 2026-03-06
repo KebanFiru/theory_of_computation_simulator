@@ -34,7 +34,6 @@ export function useAutomatonManager() {
           setDfaAlphabets(parsed.dfaAlphabets);
         }
       } catch {
-        // Ignore invalid stored data
       }
     }
     setIsHydrated(true);
@@ -47,14 +46,12 @@ export function useAutomatonManager() {
     window.localStorage.setItem(STORAGE_KEY, payload);
   }, [savedDFAs, dfaAlphabets, isHydrated]);
 
-  // Restore alphabet for a DFA
   const restoreAlphabet = useCallback((dfaName: string) => {
     if (dfaAlphabets[dfaName]) {
       setAlphabet([...dfaAlphabets[dfaName]]);
     }
   }, [dfaAlphabets]);
 
-  // Clear alphabet (for new DFA)
   const clearAlphabet = useCallback(() => {
     setAlphabet([]);
   }, []);
@@ -100,7 +97,6 @@ export function useAutomatonManager() {
         return false;
       }
 
-      // Filter states within selection rectangle
       const minX = Math.min(selectionRect.x1, selectionRect.x2);
       const maxX = Math.max(selectionRect.x1, selectionRect.x2);
       const minY = Math.min(selectionRect.y1, selectionRect.y2);
@@ -121,7 +117,6 @@ export function useAutomatonManager() {
         return false;
       }
 
-      // Save to collection with bounds
       const snapshotStates = selectedStateIndices.map(index => State.from(states[index]));
       const snapshotArrows = arrowPairs
         .filter(pair => selectedStateIndices.includes(pair.from) && selectedStateIndices.includes(pair.to))
@@ -130,7 +125,6 @@ export function useAutomatonManager() {
       const automaton = FiniteAutomaton.fromCanvasSnapshot(snapshotStates, snapshotArrows, trimmedAlphabet);
       const table = automaton.toTable();
 
-      // Save alphabet for this DFA
       setDfaAlphabets(prev => ({ ...prev, [dfaName]: [...trimmedAlphabet] }));
 
       setSavedDFAs(prev => ({
@@ -152,15 +146,11 @@ export function useAutomatonManager() {
       setTransitionTable(table);
       setAlphabet([...trimmedAlphabet]);
 
-      // Keep states and arrows visible after saving
-      // (Don't remove them from the canvas)
-
       return true;
     },
     [states, alphabet, arrowPairs, savedDFAs]
   );
 
-  // Update arrow label by index
   const updateArrowLabel = useCallback((index: number, label: string) => {
     setArrowPairs(pairs =>
       pairs.map((p, i) => (i === index ? p.withLabel(label) : p))

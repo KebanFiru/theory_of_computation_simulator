@@ -1,10 +1,10 @@
 "use client";
 import React, { useRef, useState, useReducer, useCallback } from "react";
 import SelectionMenu from "../components/SelectionMenuComponent";
-import AutomatonCanvas from "../components/AutomatonCanvas";
+import AutomatonCanvas from "@/components/AutomatonCanvas";
 import ArrowInputFields from "../components/ArrowInputFields";
 import AutomatonNameDialog from "../components/AutomatonNameDialog";
-import AutomatonTableDisplay from "../components/AutomatonTableDisplay";
+import AutomatonTableDisplay from "@/components/AutomatonTableDisplay";
 import SelectionModeIndicator from "../components/SelectionModeIndicator";
 import HamburgerMenu from "../components/HamburgerMenu";
 import EditModeBanner from "../components/EditModeBanner";
@@ -18,7 +18,7 @@ import { useCanvasKeyboardShortcuts } from "../hooks/useCanvasKeyboardShortcuts"
 import { useCanvasPointerHandlers } from "../hooks/useCanvasPointerHandlers";
 import { useFinalizeSelectionFlow } from "../hooks/useFinalizeSelectionFlow";
 import { useCanvasClickHandler } from "../hooks/useCanvasClickHandler";
-import { useAutomatonWorkbenchActions } from "../hooks/useAutomatonWorkbenchActions";
+import { useAutomatonWorkbenchActions } from "@/hooks/useAutomatonWorkbenchActions";
 import { useAutomatonEditFlow } from "../hooks/useAutomatonEditFlow";
 import { useToast } from "../hooks/useToast";
 import { useViewportRefresh } from "../hooks/useViewportRefresh";
@@ -27,6 +27,7 @@ import { Transition } from "../lib/util-classes/transition";
 import type {
   OverwriteDialogState,
   DraggedSavedFAState,
+  FaTransitionDialogState,
   ImportPreviewState,
   RegexDialogState,
   TextArtifact,
@@ -35,14 +36,12 @@ import type {
 } from "../types/page";
 
 export default function Canvas() {
-  // Force update for AutomatonTableDisplay
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editMode, setEditMode] = useState(false);
   const [editingDFAName, setEditingDFAName] = useState<string | null>(null);
   const [editingParentMode, setEditingParentMode] = useState<"FA" | "TM" | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Mode states
   const [startingState, setStartgingState] = useState(false);
   const [state, setState] = useState(false);
   const [acceptState, setAcceptState] = useState(false);
@@ -74,8 +73,8 @@ export default function Canvas() {
   });
   const [transitionCountDialog, setTransitionCountDialog] = useState<TransitionCountDialogState>({ isOpen: false, from: -1, to: -1, max: 0, value: "1" });
   const [tmTransitionDialog, setTmTransitionDialog] = useState<TmTransitionDialogState>({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
+  const [faTransitionDialog, setFaTransitionDialog] = useState<FaTransitionDialogState>({ isOpen: false, from: -1, to: -1, symbols: [], custom: "" });
 
-  // Custom hooks
   const dfaManager = useAutomatonManager();
   const canvasInteraction = useCanvasInteraction();
   const selection = useSelectionMode();
@@ -114,6 +113,7 @@ export default function Canvas() {
   } = useAutomatonWorkbenchActions({
     dfaManager,
     selectedDFAName,
+    scale: canvasInteraction.scale,
     setSelectedDFAName,
     setImportPreview,
     setImportCursor,
@@ -185,12 +185,15 @@ export default function Canvas() {
     setDraggedSavedFA,
     importPreview,
     setImportCursor,
-    setLastCanvasPos
+    setLastCanvasPos,
+    textArtifacts,
+    setTextArtifacts
   });
 
   const {
     handleTransitionCountConfirm,
-    handleTmTransitionConfirm
+    handleTmTransitionConfirm,
+    handleFaTransitionConfirm
   } = useTransitionFlow({
     dfaManager,
     transitionSlots,
@@ -199,6 +202,8 @@ export default function Canvas() {
     setTransitionCountDialog,
     tmTransitionDialog,
     setTmTransitionDialog,
+    faTransitionDialog,
+    setFaTransitionDialog,
     setRoad,
     showToast
   });
@@ -226,6 +231,7 @@ export default function Canvas() {
     setRoadSelection,
     transitionSlots,
     setTransitionCountDialog,
+    setFaTransitionDialog,
     tmTransitionMode,
     setTmTransitionDialog,
     startingState,
@@ -270,7 +276,7 @@ export default function Canvas() {
         tmFinalize={tmFinalize}
         setTmFinalize={setTmFinalize}
         activeParentOverride={editingParentMode}
-        alphabetOwnerLabel={editMode && editingDFAName ? editingDFAName : "Unsaved FA"}
+        alphabetOwnerLabel={editMode && editingDFAName ? editingDFAName : selectedDFAName ?? "Unsaved FA"}
         alphabetLocked={editMode ? false : false}
       />
 
@@ -329,14 +335,28 @@ export default function Canvas() {
         showNameDialog={showNameDialog}
         visible={!isMenuOpen}
         onArrowLabelChange={(index, label) => {
-          // Prevent duplicate labels between same from-to
-          const pair = dfaManager.arrowPairs[index];
-          if (!pair) return;
-          if (label && dfaManager.arrowPairs.some((p, i) => i !== index && p.from === pair.from && p.to === pair.to && p.label === label)) {
-            showToast("This symbol is already used for this transition.", "error");
+          const resolution = Transition.resolveLabelUpdate({
+            arrowPairs: dfaManager.arrowPairs,
+            states: dfaManager.states,
+            index,
+            label
+          });
+
+          if (resolution.kind === "error") {
+            if (resolution.code === "tm-format") {
+              showToast("TM labels must use read/write,move segments (e.g. 0/1,R or 0/1,R;_/_,N).", "error");
+              return;
+            }
+
+            if (resolution.code === "fa-duplicate-symbol") {
+              showToast("This symbol is already used for this transition.", "error");
+              return;
+            }
+
             return;
           }
-          dfaManager.updateArrowLabel(index, label);
+
+          dfaManager.updateArrowLabel(index, resolution.value);
         }}
       />
 
@@ -365,16 +385,20 @@ export default function Canvas() {
         regexDialog={regexDialog}
         transitionCountDialog={transitionCountDialog}
         tmTransitionDialog={tmTransitionDialog}
+        faTransitionDialog={faTransitionDialog}
         overwriteDialog={overwriteDialog}
         setRegexDialog={setRegexDialog}
         setTransitionCountDialog={setTransitionCountDialog}
         setTmTransitionDialog={setTmTransitionDialog}
+        setFaTransitionDialog={setFaTransitionDialog}
         setOverwriteDialog={setOverwriteDialog}
         onCreateRegexAutomaton={handleCreateRegexAutomaton}
         onCloseRegexDialog={handleCloseRegexDialog}
         onTransitionCountConfirm={handleTransitionCountConfirm}
         onTmTransitionConfirm={handleTmTransitionConfirm}
+        onFaTransitionConfirm={handleFaTransitionConfirm}
         onOverwriteConfirm={handleOverwriteConfirm}
+        faTransitionAlphabet={dfaManager.alphabet}
       />
 
       <FloatingArtifacts

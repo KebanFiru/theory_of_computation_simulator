@@ -1,4 +1,10 @@
 import type { TransitionInputDescriptor } from "../../types/view";
+import type { ParsedTmLabel } from "../../types/turing";
+import type {
+  ResolveTransitionLabelArgs,
+  TransitionLabelResolution,
+  TransitionLike
+} from "../../types/transition";
 import type { State } from "./state";
 
 export class Transition {
@@ -28,7 +34,7 @@ export class Transition {
     return new Transition({ ...this, from, to });
   }
 
-  private static calculateParallelOffset(
+  static calculateParallelOffset(
     from: { x: number; y: number },
     to: { x: number; y: number },
     isForwardDirection: boolean
@@ -45,6 +51,95 @@ export class Transition {
       x: perpX * offsetDistance * sign,
       y: perpY * offsetDistance * sign
     };
+  }
+
+  static parseTmLabel(label: string): ParsedTmLabel | null {
+    const compact = label.replace(/\s+/g, "");
+    if (!compact) return null;
+
+    const segments = compact.split(";").filter(Boolean);
+    if (segments.length === 0) return null;
+
+    const reads: string[] = [];
+    const writes: string[] = [];
+    const moves: ParsedTmLabel["moves"] = [];
+
+    for (const segment of segments) {
+      const [rwPart, movePart, extraPart] = segment.split(",");
+      if (!rwPart || !movePart || extraPart !== undefined) return null;
+
+      const move = movePart.toUpperCase();
+      if (move !== "L" && move !== "R" && move !== "N") return null;
+
+      const [readPart, writePart, extraRw] = rwPart.split("/");
+      if (!readPart || !writePart || extraRw !== undefined) return null;
+
+      const readLength = Array.from(readPart).length;
+      const writeLength = Array.from(writePart).length;
+      if (readLength !== 1 || writeLength !== 1) return null;
+
+      reads.push(readPart);
+      writes.push(writePart);
+      moves.push(move);
+    }
+
+    return {
+      reads,
+      writes,
+      moves,
+      tapeCount: segments.length
+    };
+  }
+
+  static formatTmLabel(parsed: ParsedTmLabel) {
+    return parsed.reads
+      .map((read, index) => `${read}/${parsed.writes[index]},${parsed.moves[index]}`)
+      .join(";");
+  }
+
+  static isTmTransitionPair(states: State[], pair: TransitionLike) {
+    const fromState = states[pair.from];
+    const toState = states[pair.to];
+    return !!fromState?.color?.startsWith("tm-") && !!toState?.color?.startsWith("tm-");
+  }
+
+  static resolveLabelUpdate({
+    arrowPairs,
+    states,
+    index,
+    label
+  }: ResolveTransitionLabelArgs): TransitionLabelResolution {
+    const pair = arrowPairs[index];
+    if (!pair) {
+      return { kind: "error", code: "invalid-index" };
+    }
+
+    if (Transition.isTmTransitionPair(states, pair)) {
+      if (!label) {
+        return { kind: "set", value: "" };
+      }
+
+      const parsed = Transition.parseTmLabel(label);
+      if (!parsed) {
+        return { kind: "error", code: "tm-format" };
+      }
+
+      return {
+        kind: "set",
+        value: Transition.formatTmLabel(parsed)
+      };
+    }
+
+    if (label && arrowPairs.some((candidate, candidateIndex) =>
+      candidateIndex !== index &&
+      candidate.from === pair.from &&
+      candidate.to === pair.to &&
+      candidate.label === label
+    )) {
+      return { kind: "error", code: "fa-duplicate-symbol" };
+    }
+
+    return { kind: "set", value: label };
   }
 
   static getInputDescriptors(args: {
@@ -121,7 +216,7 @@ export class Transition {
           fromCircle.color.startsWith("tm-") && toCircle.color.startsWith("tm-");
         const textLength = Math.max(value.length, 1);
         const boxWidth = isTmTransition
-          ? Math.min(168, Math.max(54, textLength * 7 + 10))
+          ? Math.min(260, Math.max(54, textLength * 7 + 10))
           : 24;
 
         descriptors.push({
