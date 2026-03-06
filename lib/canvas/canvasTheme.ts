@@ -1,25 +1,4 @@
-export type LabelPalette = {
-  text: string;
-  outline: string;
-};
-
-export type CanvasTheme = {
-  canvasBg: string;
-  canvasNode: string;
-  canvasNodeSelected: string;
-  canvasNodeStroke: string;
-  canvasText: string;
-  contrastLight: string;
-  contrastDark: string;
-  selectionColor: string;
-  savedColor: string;
-  savedTextColor: string;
-  arrowColor: string;
-  arrowSelectedColor: string;
-  previewColor: string;
-  shadowColor: string;
-  stateColors: Record<string, string>;
-};
+import type { CanvasTheme, LabelPaletteResolver } from "../../types/canvas";
 
 export function resolveCanvasTheme(rootStyles: CSSStyleDeclaration): CanvasTheme {
   const getVar = (name: string, fallback: string) =>
@@ -91,8 +70,8 @@ function isDarkColor(value: string): boolean {
   return luminance < 0.55;
 }
 
-export function createLabelPaletteResolver(theme: CanvasTheme) {
-  return (fillColor: string): LabelPalette => {
+export function createLabelPaletteResolver(theme: CanvasTheme): LabelPaletteResolver {
+  return (fillColor: string) => {
     if (isDarkColor(fillColor)) {
       return {
         text: theme.contrastLight,

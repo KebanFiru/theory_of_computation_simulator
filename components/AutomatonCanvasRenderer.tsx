@@ -1,8 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import type { Offset, SavedDFAs, SelectionRect } from "../types/domain";
-import type { State } from "../lib/util-classes/state";
-import { Transition } from "../lib/util-classes/transition";
+import type { AutomatonCanvasRendererProps } from "../types/component-props";
 import { drawTransitionLabels } from "../lib/canvas/canvasPrimitives";
 import {
   renderLiveArrowsLayer,
@@ -14,26 +12,6 @@ import {
   renderTopStateLabelsLayer
 } from "../lib/canvas/canvasLayerRenderers";
 import { createLabelPaletteResolver, resolveCanvasTheme } from "../lib/canvas/canvasTheme";
-
-type AutomatonCanvasRendererProps = {
-  canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  states: State[];
-  arrowPairs: Transition[];
-  arrowSelection: number[];
-  showLiveTransitionLabels: boolean;
-  selectionRect: SelectionRect;
-  savedDFAs: SavedDFAs;
-  selectedDFAName?: string | null;
-  editMode?: boolean;
-  editingDFAName?: string | null;
-  previewStates?: State[] | null;
-  previewArrowPairs?: Transition[] | null;
-  previewPosition?: { x: number; y: number } | null;
-  offset: Offset;
-  scale: number;
-  renderTick: number;
-  themeTick: number;
-};
 
 export default function AutomatonCanvasRenderer({
   canvasRef,

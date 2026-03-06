@@ -48,6 +48,7 @@ export default function Canvas() {
   const [acceptState, setAcceptState] = useState(false);
   const [tmStateMode, setTmStateMode] = useState(false);
   const [tmAcceptMode, setTmAcceptMode] = useState(false);
+  const [tmRejectMode, setTmRejectMode] = useState(false);
   const [tmTransitionMode, setTmTransitionMode] = useState(false);
   const [road, setRoad] = useState(false);
   const [finalize, setFinalize] = useState(false);
@@ -237,6 +238,8 @@ export default function Canvas() {
     setTmStateMode,
     tmAcceptMode,
     setTmAcceptMode,
+    tmRejectMode,
+    setTmRejectMode,
     showToast
   });
 
@@ -254,6 +257,8 @@ export default function Canvas() {
         setTmStateMode={setTmStateMode}
         tmAcceptMode={tmAcceptMode}
         setTmAcceptMode={setTmAcceptMode}
+        tmRejectMode={tmRejectMode}
+        setTmRejectMode={setTmRejectMode}
         tmTransitionMode={tmTransitionMode}
         setTmTransitionMode={setTmTransitionMode}
         road={road}
@@ -301,6 +306,7 @@ export default function Canvas() {
         state={state}
         tmStateMode={tmStateMode}
         tmAcceptMode={tmAcceptMode}
+        tmRejectMode={tmRejectMode}
         tmTransitionMode={tmTransitionMode}
         selectionMode={selection.selectionMode}
         renderTick={viewportTick}
@@ -323,14 +329,33 @@ export default function Canvas() {
         showNameDialog={showNameDialog}
         visible={!isMenuOpen}
         onArrowLabelChange={(index, label) => {
-          // Prevent duplicate labels between same from-to
-          const pair = dfaManager.arrowPairs[index];
-          if (!pair) return;
-          if (label && dfaManager.arrowPairs.some((p, i) => i !== index && p.from === pair.from && p.to === pair.to && p.label === label)) {
-            showToast("This symbol is already used for this transition.", "error");
+          const resolution = Transition.resolveLabelUpdate({
+            arrowPairs: dfaManager.arrowPairs,
+            states: dfaManager.states,
+            index,
+            label
+          });
+
+          if (resolution.kind === "error") {
+            if (resolution.code === "tm-format") {
+              showToast("TM labels must be in read/write,direction format (e.g. 0/1,R).", "error");
+              return;
+            }
+
+            if (resolution.code === "tm-duplicate-read") {
+              showToast(`TM already has a transition from q${resolution.from} reading "${resolution.read}".`, "error");
+              return;
+            }
+
+            if (resolution.code === "fa-duplicate-symbol") {
+              showToast("This symbol is already used for this transition.", "error");
+              return;
+            }
+
             return;
           }
-          dfaManager.updateArrowLabel(index, label);
+
+          dfaManager.updateArrowLabel(index, resolution.value);
         }}
       />
 

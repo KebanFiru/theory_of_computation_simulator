@@ -23,6 +23,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
   state,
   tmStateMode,
   tmAcceptMode,
+  tmRejectMode,
   tmTransitionMode,
   selectionMode,
   renderTick,
@@ -97,6 +98,8 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
             : tmStateMode
             ? "crosshair"
             : tmAcceptMode
+            ? "crosshair"
+            : tmRejectMode
             ? "crosshair"
             : tmTransitionMode
             ? "crosshair"

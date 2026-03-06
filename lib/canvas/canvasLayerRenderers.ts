@@ -1,17 +1,8 @@
-import type { SavedDFAs, SelectionRect } from "../../types/domain";
+import type { Bounds, SavedDFAs, SelectionRect } from "../../types/domain";
+import type { CanvasTheme, LabelPaletteResolver } from "../../types/canvas";
 import type { State } from "../util-classes/state";
 import { Transition } from "../util-classes/transition";
-import type { CanvasTheme, LabelPalette } from "./canvasTheme";
 import { drawArrow, drawArrowsBidirectional, drawLoop, drawTransitionLabels } from "./canvasPrimitives";
-
-type LabelPaletteResolver = (fillColor: string) => LabelPalette;
-
-type Bounds = {
-  x1: number;
-  y1: number;
-  x2: number;
-  y2: number;
-};
 
 export function renderStateLayer(args: {
   ctx: CanvasRenderingContext2D;

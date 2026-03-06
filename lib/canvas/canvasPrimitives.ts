@@ -1,10 +1,5 @@
 import { Transition } from "../util-classes/transition";
-
-export type TransitionLabelStyle = {
-  baseColor: string;
-  bgColor: string;
-  borderColor: string;
-};
+import type { TransitionLabelStyle } from "../../types/canvas";
 
 export function drawArrow(
   ctx: CanvasRenderingContext2D,

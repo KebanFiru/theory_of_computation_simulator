@@ -6,7 +6,7 @@ import { CircleArrowRight, Circle, MoveRightIcon, Square, CircleDot } from 'luci
 
 import type { SelectionMenuProps } from '../types/ui';  
 
-export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, tmFinalize, setTmFinalize, acceptState, setAcceptState, tmStateMode, setTmStateMode, tmAcceptMode, setTmAcceptMode, tmTransitionMode, setTmTransitionMode, alphabetOwnerLabel, alphabetLocked, activeParentOverride}: SelectionMenuProps){
+export default function SelectionMenu({startingState, setStartgingState, state, setState, road, setRoad, alphabet, setAlphabet, finalize, setFinalize, tmFinalize, setTmFinalize, acceptState, setAcceptState, tmStateMode, setTmStateMode, tmAcceptMode, setTmAcceptMode, tmRejectMode, setTmRejectMode, tmTransitionMode, setTmTransitionMode, alphabetOwnerLabel, alphabetLocked, activeParentOverride}: SelectionMenuProps){
   const [activeParent, setActiveParent] = React.useState<"FA" | "TM">("FA");
 
   const clearAllModes = React.useCallback(() => {
@@ -17,6 +17,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
     setFinalize(false);
     setTmStateMode(false);
     setTmAcceptMode(false);
+    setTmRejectMode(false);
     setTmTransitionMode(false);
     setTmFinalize(false);
   }, [
@@ -27,6 +28,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
     setState,
     setTmAcceptMode,
     setTmFinalize,
+    setTmRejectMode,
     setTmStateMode,
     setTmTransitionMode
   ]);
@@ -165,6 +167,14 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   >
                     <CircleDot size={16} />
                     <span>Final</span>
+                  </button>
+                  <button
+                    className={buttonClass(tmRejectMode)}
+                    onClick={() => toggleExclusive(tmRejectMode, setTmRejectMode)}
+                    title="Add TM reject state"
+                  >
+                    <Circle size={16} />
+                    <span>Reject</span>
                   </button>
                   <button
                     className={buttonClass(tmTransitionMode)}

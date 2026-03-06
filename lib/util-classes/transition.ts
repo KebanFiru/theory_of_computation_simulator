@@ -1,4 +1,10 @@
 import type { TransitionInputDescriptor } from "../../types/view";
+import type { ParsedTmLabel } from "../../types/turing";
+import type {
+  ResolveTransitionLabelArgs,
+  TransitionLabelResolution,
+  TransitionLike
+} from "../../types/transition";
 import type { State } from "./state";
 
 export class Transition {
@@ -45,6 +51,103 @@ export class Transition {
       x: perpX * offsetDistance * sign,
       y: perpY * offsetDistance * sign
     };
+  }
+
+  static parseTmLabel(label: string): ParsedTmLabel | null {
+    const compact = label.replace(/\s+/g, "");
+    const [rwPart, movePart] = compact.split(",");
+    if (!rwPart || !movePart) return null;
+
+    const move = movePart.toUpperCase();
+    if (move !== "L" && move !== "R" && move !== "N") return null;
+
+    const [readPart, writePart] = rwPart.split("/");
+    if (!readPart || !writePart) return null;
+
+    const readLength = Array.from(readPart).length;
+    const writeLength = Array.from(writePart).length;
+    if (readLength !== 1 || writeLength !== 1) return null;
+
+    return {
+      read: readPart,
+      write: writePart,
+      move
+    };
+  }
+
+  static isTmTransitionPair(states: State[], pair: TransitionLike) {
+    const fromState = states[pair.from];
+    const toState = states[pair.to];
+    return !!fromState?.color?.startsWith("tm-") && !!toState?.color?.startsWith("tm-");
+  }
+
+  static hasDuplicateTmRead(args: {
+    arrowPairs: TransitionLike[];
+    from: number;
+    read: string;
+    excludeIndex?: number;
+  }) {
+    const { arrowPairs, from, read, excludeIndex } = args;
+    return arrowPairs.some((pair, pairIndex) => {
+      if (excludeIndex !== undefined && pairIndex === excludeIndex) return false;
+      if (pair.from !== from) return false;
+      const parsed = Transition.parseTmLabel(pair.label ?? "");
+      if (!parsed) return false;
+      return parsed.read === read;
+    });
+  }
+
+  static resolveLabelUpdate({
+    arrowPairs,
+    states,
+    index,
+    label
+  }: ResolveTransitionLabelArgs): TransitionLabelResolution {
+    const pair = arrowPairs[index];
+    if (!pair) {
+      return { kind: "error", code: "invalid-index" };
+    }
+
+    if (Transition.isTmTransitionPair(states, pair)) {
+      if (!label) {
+        return { kind: "set", value: "" };
+      }
+
+      const parsed = Transition.parseTmLabel(label);
+      if (!parsed) {
+        return { kind: "error", code: "tm-format" };
+      }
+
+      if (Transition.hasDuplicateTmRead({
+        arrowPairs,
+        from: pair.from,
+        read: parsed.read,
+        excludeIndex: index
+      })) {
+        return {
+          kind: "error",
+          code: "tm-duplicate-read",
+          from: pair.from,
+          read: parsed.read
+        };
+      }
+
+      return {
+        kind: "set",
+        value: `${parsed.read}/${parsed.write},${parsed.move}`
+      };
+    }
+
+    if (label && arrowPairs.some((candidate, candidateIndex) =>
+      candidateIndex !== index &&
+      candidate.from === pair.from &&
+      candidate.to === pair.to &&
+      candidate.label === label
+    )) {
+      return { kind: "error", code: "fa-duplicate-symbol" };
+    }
+
+    return { kind: "set", value: label };
   }
 
   static getInputDescriptors(args: {

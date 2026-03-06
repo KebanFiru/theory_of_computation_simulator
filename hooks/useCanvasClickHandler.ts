@@ -39,6 +39,8 @@ export function useCanvasClickHandler({
   setTmStateMode,
   tmAcceptMode,
   setTmAcceptMode,
+  tmRejectMode,
+  setTmRejectMode,
   showToast
 }: UseCanvasClickHandlerParams) {
   return useCallback((e: React.MouseEvent) => {
@@ -239,9 +241,23 @@ export function useCanvasClickHandler({
       );
 
       if (clickedCircleIndex !== -1) {
+        const clickedState = dfaManager.states[clickedCircleIndex];
+        if (!clickedState?.color.startsWith("tm-")) {
+          showToast("TM transitions can only connect TM states.", "error");
+          return;
+        }
+
         if (roadSelection === null) {
           setRoadSelection(clickedCircleIndex);
           dfaManager.setArrowSelection([clickedCircleIndex]);
+          return;
+        }
+
+        const fromState = dfaManager.states[roadSelection];
+        if (!fromState?.color.startsWith("tm-")) {
+          setRoadSelection(null);
+          dfaManager.setArrowSelection([]);
+          showToast("TM transitions can only connect TM states.", "error");
           return;
         }
 
@@ -288,6 +304,11 @@ export function useCanvasClickHandler({
       dfaManager.setStates(prev => [...prev, State.create({ x: canvasX, y: canvasY, color: "tm-blue" })]);
       setTmAcceptMode(false);
     }
+
+    if (tmRejectMode) {
+      dfaManager.setStates(prev => [...prev, State.create({ x: canvasX, y: canvasY, color: "tm-purple" })]);
+      setTmRejectMode(false);
+    }
   }, [
     acceptState,
     buildTransitionSlotsFromPairs,
@@ -316,6 +337,7 @@ export function useCanvasClickHandler({
     setStartgingState,
     setState,
     setTmAcceptMode,
+    setTmRejectMode,
     setTmStateMode,
     setTmTransitionDialog,
     setTransitionCountDialog,
@@ -324,6 +346,7 @@ export function useCanvasClickHandler({
     startingState,
     state,
     tmAcceptMode,
+    tmRejectMode,
     tmStateMode,
     tmTransitionMode,
     transitionSlots

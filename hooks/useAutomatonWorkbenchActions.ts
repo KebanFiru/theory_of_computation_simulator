@@ -3,7 +3,7 @@ import { useCallback } from "react";
 import { State } from "../lib/util-classes/state";
 import { Transition } from "../lib/util-classes/transition";
 import { SavedFA, buildNFAFromRegex } from "../lib/automata/index";
-import { CFG, DFA,  GNFA } from "../lib/models";
+import { CFG, DFA, GNFA } from "../lib/models";
 import type { UseAutomatonWorkbenchActionsParams } from "../types/hooks";
 
 export function useAutomatonWorkbenchActions({
@@ -18,6 +18,11 @@ export function useAutomatonWorkbenchActions({
   setRegexDialog,
   showToast
 }: UseAutomatonWorkbenchActionsParams) {
+  const isSavedTm = useCallback((name: string) => {
+    const snapshotStates = dfaManager.savedDFAs[name]?.snapshot?.states ?? [];
+    return snapshotStates.some(state => state.color.startsWith("tm-"));
+  }, [dfaManager.savedDFAs]);
+
   const buildImportLayout = useCallback((stateCount: number, colors: Array<string | null>) => {
     const radius = stateCount > 1 ? 140 : 0;
     const step = stateCount > 0 ? (Math.PI * 2) / stateCount : 0;
@@ -247,6 +252,11 @@ export function useAutomatonWorkbenchActions({
       return;
     }
 
+    if (isSavedTm(selectedDFAName)) {
+      showToast("Selected automaton is a TM. NFA→DFA conversion is FA-only.", "info");
+      return;
+    }
+
     const sourceAlphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? (source.table?.[0] ?? []).slice(1);
     if (SavedFA.getType(source, sourceAlphabet) !== "NFA") {
       showToast("Selected automaton is already deterministic.", "info");
@@ -261,7 +271,7 @@ export function useAutomatonWorkbenchActions({
       y: (sourceBounds.y1 + sourceBounds.y2) / 2
     });
     showToast("Move cursor and click to place converted DFA.", "info");
-  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, selectedDFAName, setImportCursor, setImportPreview, showToast]);
+  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, setImportCursor, setImportPreview, showToast]);
 
   const handleCreateGnfa = useCallback(() => {
     if (!selectedDFAName) {
@@ -271,6 +281,11 @@ export function useAutomatonWorkbenchActions({
     const source = dfaManager.savedDFAs[selectedDFAName];
     if (!source) {
       showToast("Selected FA not found.", "error");
+      return;
+    }
+
+    if (isSavedTm(selectedDFAName)) {
+      showToast("Selected automaton is a TM. GNFA creation is FA-only.", "info");
       return;
     }
 
@@ -285,7 +300,7 @@ export function useAutomatonWorkbenchActions({
       y: (sourceBounds.y1 + sourceBounds.y2) / 2
     });
     showToast("Move cursor and click to place created GNFA.", "info");
-  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, selectedDFAName, setImportCursor, setImportPreview, showToast]);
+  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, setImportCursor, setImportPreview, showToast]);
 
   const handleCreateCfg = useCallback(() => {
     const cfg = CFG.createDefault();

@@ -19,6 +19,8 @@ export type SelectionMenuType = {
   setTmStateMode: (value: boolean) => void;
   tmAcceptMode: boolean;
   setTmAcceptMode: (value: boolean) => void;
+  tmRejectMode: boolean;
+  setTmRejectMode: (value: boolean) => void;
   tmTransitionMode: boolean;
   setTmTransitionMode: (value: boolean) => void;
   alphabet: string[];
@@ -45,6 +47,7 @@ export interface AutomatonCanvasProps {
   state: boolean;
   tmStateMode: boolean;
   tmAcceptMode: boolean;
+  tmRejectMode: boolean;
   tmTransitionMode: boolean;
   selectionMode: boolean;
   renderTick: number;
@@ -54,6 +57,26 @@ export interface AutomatonCanvasProps {
   onWheel: (e: React.WheelEvent) => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
+}
+
+export interface AutomatonCanvasRendererProps {
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  states: State[];
+  arrowPairs: Transition[];
+  arrowSelection: number[];
+  showLiveTransitionLabels: boolean;
+  selectionRect: SelectionRect;
+  savedDFAs: SavedDFAs;
+  selectedDFAName?: string | null;
+  editMode?: boolean;
+  editingDFAName?: string | null;
+  previewStates?: State[] | null;
+  previewArrowPairs?: Transition[] | null;
+  previewPosition?: { x: number; y: number } | null;
+  offset: Offset;
+  scale: number;
+  renderTick: number;
+  themeTick: number;
 }
 
 export interface ArrowInputFieldsProps {

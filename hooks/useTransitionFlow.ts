@@ -35,19 +35,30 @@ export function useTransitionFlow({
 
   const handleTmTransitionConfirm = useCallback(() => {
     const label = tmTransitionDialog.value.trim();
-    // Pattern: read/write,direction  —  direction is L, R, or N (None/Stay) per Wikipedia
-    const tmPattern = /^(.+)\/(.+),([LRN])$/;
-    if (!tmPattern.test(label)) {
-      showToast("Invalid TM transition. Use read/write,direction format (e.g. 0/1,R or _/_,N).", "error");
+    const parsed = Transition.parseTmLabel(label);
+    if (!parsed) {
+      showToast("Invalid TM transition. Use single-symbol read/write,direction (e.g. 0/1,R or _/_,N).", "error");
       return;
     }
 
     const { from, to } = tmTransitionDialog;
-    setArrowPairs(prev => [...prev, Transition.create(from, to, label)]);
+    const duplicateByRead = Transition.hasDuplicateTmRead({
+      arrowPairs,
+      from,
+      read: parsed.read
+    });
+
+    if (duplicateByRead) {
+      showToast(`TM already has a transition from q${from} reading "${parsed.read}".`, "error");
+      return;
+    }
+
+    const normalizedLabel = `${parsed.read}/${parsed.write},${parsed.move}`;
+    setArrowPairs(prev => [...prev, Transition.create(from, to, normalizedLabel)]);
     const slotKey = `${from}-${to}`;
     setTransitionSlots(prev => ({ ...prev, [slotKey]: (prev[slotKey] ?? 0) + 1 }));
     setTmTransitionDialog({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
-  }, [tmTransitionDialog, setArrowPairs, setTmTransitionDialog, setTransitionSlots, showToast]);
+  }, [arrowPairs, tmTransitionDialog, setArrowPairs, setTmTransitionDialog, setTransitionSlots, showToast]);
 
   useEffect(() => {
     const pairs = new Set<string>();

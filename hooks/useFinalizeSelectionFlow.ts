@@ -64,9 +64,10 @@ export function useFinalizeSelectionFlow({
       const maxX = Math.max(rect.x1, rect.x2);
       const minY = Math.min(rect.y1, rect.y2);
       const maxY = Math.max(rect.y1, rect.y2);
-      const hasTmState = states.some(
+      const selectedTmStates = states.filter(
         st => st.x >= minX && st.x <= maxX && st.y >= minY && st.y <= maxY && st.color.startsWith("tm-")
       );
+      const hasTmState = selectedTmStates.length > 0;
       if (!hasTmState) {
         showToast("No TM states found in the selection area.", "error");
         selection.clearSelection();
@@ -74,6 +75,16 @@ export function useFinalizeSelectionFlow({
         setTmFinalize(false);
         return;
       }
+
+      const hasTmFinalState = selectedTmStates.some(st => st.color === "tm-blue");
+      if (!hasTmFinalState) {
+        showToast("TM must include at least one final state (tm-blue).", "error");
+        selection.clearSelection();
+        selection.setSelectionMode(false);
+        setTmFinalize(false);
+        return;
+      }
+
       setNameDialogMode("TM");
       setShowNameDialog(true);
       selection.setSelectionMode(false);
