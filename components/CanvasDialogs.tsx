@@ -211,37 +211,45 @@ export default function CanvasDialogs({
       {faTransitionDialog.isOpen && (
         <div className="fixed inset-0 bg-[var(--overlay)] flex items-center justify-center z-[70]">
           <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-sm w-full border border-[var(--border)]">
-            <h3 className="text-lg font-bold mb-1 text-[var(--text)]">Transition Symbol</h3>
-            <p className="text-xs text-[var(--text-subtle)] mb-3">Pick a symbol from the alphabet or type a custom one.</p>
+            <h3 className="text-lg font-bold mb-1 text-[var(--text)]">Transition Symbols</h3>
+            <p className="text-xs text-[var(--text-subtle)] mb-3">Select one or more symbols for this transition.</p>
             {faTransitionAlphabet.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
-                {faTransitionAlphabet.map(sym => (
-                  <button
-                    key={sym}
-                    className={`px-3 py-1.5 rounded border text-xs font-semibold transition-all ${
-                      faTransitionDialog.symbol === sym
-                        ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)]"
-                        : "bg-[var(--surface-muted)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--surface-strong)]"
-                    }`}
-                    onClick={() => setFaTransitionDialog(prev => ({ ...prev, symbol: sym }))}
-                  >
-                    {sym}
-                  </button>
-                ))}
+                {faTransitionAlphabet.map(sym => {
+                  const isSelected = faTransitionDialog.symbols.includes(sym);
+                  return (
+                    <button
+                      key={sym}
+                      className={`px-3 py-1.5 rounded border text-xs font-semibold transition-all ${
+                        isSelected
+                          ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)]"
+                          : "bg-[var(--surface-muted)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--surface-strong)]"
+                      }`}
+                      onClick={() => setFaTransitionDialog(prev => ({
+                        ...prev,
+                        symbols: isSelected
+                          ? prev.symbols.filter(s => s !== sym)
+                          : [...prev.symbols, sym]
+                      }))}
+                    >
+                      {sym}
+                    </button>
+                  );
+                })}
               </div>
             )}
             <input
               autoFocus
               className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-4 text-[var(--text)] font-mono"
-              placeholder="or type symbol…"
-              value={faTransitionDialog.symbol}
-              onChange={e => setFaTransitionDialog(prev => ({ ...prev, symbol: e.target.value }))}
+              placeholder="or type custom symbol(s), comma separated…"
+              value={faTransitionDialog.custom}
+              onChange={e => setFaTransitionDialog(prev => ({ ...prev, custom: e.target.value }))}
               onKeyDown={e => e.key === "Enter" && onFaTransitionConfirm()}
             />
             <div className="flex gap-2 justify-end">
               <button
                 className="px-4 py-2 bg-[var(--surface-strong)] text-[var(--text)] rounded hover:bg-[var(--surface-muted)]"
-                onClick={() => setFaTransitionDialog({ isOpen: false, from: -1, to: -1, symbol: "" })}
+                onClick={() => setFaTransitionDialog({ isOpen: false, from: -1, to: -1, symbols: [], custom: "" })}
               >
                 Cancel
               </button>

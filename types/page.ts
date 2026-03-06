@@ -36,7 +36,8 @@ export type FaTransitionDialogState = {
   isOpen: boolean;
   from: number;
   to: number;
-  symbol: string;
+  symbols: string[];
+  custom: string;
 };
 
 export type TextArtifact = {

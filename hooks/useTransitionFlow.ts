@@ -52,16 +52,22 @@ export function useTransitionFlow({
   }, [tmTransitionDialog, setArrowPairs, setTmTransitionDialog, setTransitionSlots, showToast]);
 
   const handleFaTransitionConfirm = useCallback(() => {
-    const symbol = faTransitionDialog.symbol.trim();
-    if (!symbol) {
-      showToast("Please select or enter a symbol.", "error");
+    const { from, to, symbols, custom } = faTransitionDialog;
+    const customTrimmed = custom.trim();
+    const allSymbols = customTrimmed
+      ? [...symbols, ...customTrimmed.split(/[,\s]+/).map(s => s.trim()).filter(Boolean)]
+      : [...symbols];
+    const uniqueSymbols = [...new Set(allSymbols)];
+    if (uniqueSymbols.length === 0) {
+      showToast("Please select or enter at least one symbol.", "error");
       return;
     }
-    const { from, to } = faTransitionDialog;
     const slotKey = `${from}-${to}`;
-    setArrowPairs(prev => [...prev, Transition.create(from, to, symbol)]);
-    setTransitionSlots(prev => ({ ...prev, [slotKey]: (prev[slotKey] ?? 0) + 1 }));
-    setFaTransitionDialog({ isOpen: false, from: -1, to: -1, symbol: "" });
+    uniqueSymbols.forEach(symbol => {
+      setArrowPairs(prev => [...prev, Transition.create(from, to, symbol)]);
+    });
+    setTransitionSlots(prev => ({ ...prev, [slotKey]: (prev[slotKey] ?? 0) + uniqueSymbols.length }));
+    setFaTransitionDialog({ isOpen: false, from: -1, to: -1, symbols: [], custom: "" });
   }, [faTransitionDialog, setArrowPairs, setFaTransitionDialog, setTransitionSlots, showToast]);
 
   useEffect(() => {

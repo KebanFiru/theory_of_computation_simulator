@@ -191,10 +191,6 @@ export function useCanvasClickHandler({
       );
 
       if (clickedCircleIndex !== -1) {
-        if (dfaManager.alphabet.length === 0) {
-          showToast("Please set the alphabet size first.", "error");
-          return;
-        }
         if (roadSelection === null) {
           setRoadSelection(clickedCircleIndex);
           dfaManager.setArrowSelection([clickedCircleIndex]);
@@ -209,29 +205,7 @@ export function useCanvasClickHandler({
         setRoadSelection(null);
         dfaManager.setArrowSelection([]);
 
-        if (dfaManager.alphabet.length > 0) {
-          setFaTransitionDialog({ isOpen: true, from, to, symbol: "" });
-          return;
-        }
-
-        if (!transitionSlots[slotKey]) {
-          setTransitionCountDialog({
-            isOpen: true,
-            from,
-            to,
-            max: dfaManager.alphabet.length,
-            value: "1"
-          });
-          return;
-        }
-
-        const transitionLimit = transitionSlots[slotKey] ?? dfaManager.alphabet.length;
-        if (arrowsBetween.length >= transitionLimit) {
-          showToast("You can't add more arrows than the transition limit.", "error");
-          return;
-        }
-        dfaManager.setArrowPairs(pairs => [...pairs, Transition.create(from, to)]);
-        setRoad(false);
+        setFaTransitionDialog({ isOpen: true, from, to, symbols: [], custom: "" });
         return;
       }
 

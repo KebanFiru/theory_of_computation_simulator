@@ -75,7 +75,7 @@ export default function Canvas() {
   });
   const [transitionCountDialog, setTransitionCountDialog] = useState<TransitionCountDialogState>({ isOpen: false, from: -1, to: -1, max: 0, value: "1" });
   const [tmTransitionDialog, setTmTransitionDialog] = useState<TmTransitionDialogState>({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
-  const [faTransitionDialog, setFaTransitionDialog] = useState<FaTransitionDialogState>({ isOpen: false, from: -1, to: -1, symbol: "" });
+  const [faTransitionDialog, setFaTransitionDialog] = useState<FaTransitionDialogState>({ isOpen: false, from: -1, to: -1, symbols: [], custom: "" });
 
   // Custom hooks
   const dfaManager = useAutomatonManager();

@@ -64,12 +64,11 @@ export function useAutomatonWorkbenchActions({
     }
 
     const b = related.bounds;
-    const cardWidthPx = 300;
-    const gapPx = 20;
+    const gapPx = 16;
     const safeScale = Math.max(scale, 0.1);
 
     return {
-      x: Math.min(b.x1, b.x2) + (cardWidthPx + gapPx) / safeScale,
+      x: Math.max(b.x1, b.x2) + gapPx / safeScale,
       y: Math.max(b.y1, b.y2) + 5
     };
   }, [dfaManager.savedDFAs, lastCanvasPos, scale, selectedDFAName]);
@@ -298,7 +297,7 @@ export function useAutomatonWorkbenchActions({
 
     const sourceAlphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? (source.table?.[0] ?? []).slice(1);
     const gnfa = GNFA.fromSavedFA(source, sourceAlphabet);
-    const preview = gnfa.toSavedPreview(selectedDFAName);
+    const preview = { ...gnfa.toSavedPreview(selectedDFAName), alphabet: sourceAlphabet as string[] };
     const sourceBounds = source.bounds;
     setImportPreview(preview);
     setImportCursor({
