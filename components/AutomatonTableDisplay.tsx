@@ -68,27 +68,29 @@ export default function AutomatonTableDisplay({
                 Edit
               </button>
             </div>
-            <table className="border-collapse border border-[var(--border-strong)] text-xs w-full table-fixed">
-              <tbody>
-                {card.table.map((row, rowIndex) => (
-                  <tr key={rowIndex}>
-                    {row.map((cell, cellIndex) => {
-                      const isAcceptState = cellIndex === 0 && rowIndex !== 0 && /\*$/.test(cell);
-                      return (
-                        <td
-                          key={cellIndex}
-                          className={`border border-[var(--border-strong)] px-2 py-1 ${
-                            rowIndex === 0 ? "font-bold bg-[var(--surface-muted)]" : ""
-                          } ${cellIndex === 0 ? "font-bold bg-[var(--surface-muted)]" : ""} ${isAcceptState ? "text-[var(--info)] font-bold bg-[var(--info-soft)]" : ""}`}
-                        >
-                          {isAcceptState ? <span title="Accept State">★ {cell.replace(/\*$/, "")}</span> : cell}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="border-collapse border border-[var(--border-strong)] text-xs whitespace-nowrap">
+                <tbody>
+                  {card.table.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((cell, cellIndex) => {
+                        const isAcceptState = cellIndex === 0 && rowIndex !== 0 && /\*$/.test(cell);
+                        return (
+                          <td
+                            key={cellIndex}
+                            className={`border border-[var(--border-strong)] px-1.5 py-1 ${
+                              rowIndex === 0 ? "font-bold bg-[var(--surface-muted)]" : ""
+                            } ${cellIndex === 0 ? "font-bold bg-[var(--surface-muted)]" : ""} ${isAcceptState ? "text-[var(--info)] font-bold bg-[var(--info-soft)]" : ""}`}
+                          >
+                            {isAcceptState ? <span title="Accept State">★ {cell.replace(/\*$/, "")}</span> : cell}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             <div className="mt-3 border-t border-[var(--border)] pt-3">
               <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">{card.testLabel}</label>
