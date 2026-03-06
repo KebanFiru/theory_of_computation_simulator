@@ -22,13 +22,33 @@ export default function CanvasDialogs({
       {regexDialog.isOpen && (
         <div className="fixed inset-0 bg-[var(--overlay)] flex items-center justify-center z-[70]">
           <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-lg w-full border border-[var(--border)]">
-            <h3 className="text-xl font-bold mb-4 text-[var(--text)]">Create NFA from Regex</h3>
+            <h3 className="text-xl font-bold mb-1 text-[var(--text)]">Create NFA from Regex</h3>
+            <p className="text-xs text-[var(--text-subtle)] mb-4">Uses standard regex notation (Thompson&apos;s construction).</p>
+
+            {/* Syntax reference */}
+            <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
+              <p className="text-xs font-bold text-[var(--text-subtle)] mb-2 uppercase tracking-wide">Supported operators</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[var(--text)]">
+                <span><code className="font-mono font-bold">a|b</code> <span className="text-[var(--text-subtle)]">— union (alternation)</span></span>
+                <span><code className="font-mono font-bold">ab</code> <span className="text-[var(--text-subtle)]">— concatenation</span></span>
+                <span><code className="font-mono font-bold">a*</code> <span className="text-[var(--text-subtle)]">— Kleene star (0 or more)</span></span>
+                <span><code className="font-mono font-bold">a+</code> <span className="text-[var(--text-subtle)]">— plus (1 or more)</span></span>
+                <span><code className="font-mono font-bold">a?</code> <span className="text-[var(--text-subtle)]">— optional (0 or 1)</span></span>
+                <span><code className="font-mono font-bold">(ab)</code> <span className="text-[var(--text-subtle)]">— grouping</span></span>
+                <span><code className="font-mono font-bold">\a</code> <span className="text-[var(--text-subtle)]">— escape literal</span></span>
+                <span><code className="font-mono font-bold">ε</code> <span className="text-[var(--text-subtle)]">— epsilon (empty string)</span></span>
+              </div>
+              <p className="text-xs text-[var(--text-subtle)] mt-2">Examples: <code className="font-mono">(a|b)*abb</code> &nbsp; <code className="font-mono">0*10*</code> &nbsp; <code className="font-mono">(ab)+c?</code></p>
+            </div>
+
             <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Regex</label>
             <input
-              className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-3 text-[var(--text)]"
+              autoFocus
+              className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-3 text-[var(--text)] font-mono"
               value={regexDialog.regex}
               onChange={e => setRegexDialog(prev => ({ ...prev, regex: e.target.value }))}
               placeholder="(a|b)*abb"
+              onKeyDown={e => e.key === "Enter" && onCreateRegexAutomaton()}
             />
             <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">Name</label>
             <input
@@ -40,7 +60,7 @@ export default function CanvasDialogs({
             />
             <div className="flex gap-2 justify-end">
               <button className="px-4 py-2 bg-[var(--surface-strong)] text-[var(--text)] rounded hover:bg-[var(--surface-muted)]" onClick={onCloseRegexDialog}>Cancel</button>
-              <button className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] rounded hover:bg-[var(--accent-strong)]" onClick={onCreateRegexAutomaton}>Create</button>
+              <button className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] rounded hover:bg-[var(--accent-strong)]" onClick={onCreateRegexAutomaton}>Create NFA</button>
             </div>
           </div>
         </div>

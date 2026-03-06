@@ -85,6 +85,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                   </button>
                 </div>
 
+              {activeParent === "FA" && (
                 <div className="flex items-center gap-2 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-2">
                   {alphabetOwnerLabel && (
                     <span className="hidden md:inline text-xs font-semibold text-[var(--text-subtle)]">
@@ -99,6 +100,7 @@ export default function SelectionMenu({startingState, setStartgingState, state, 
                     disabled={alphabetLocked}
                   />
                 </div>
+              )}
               </div>
 
               {activeParent === "FA" && (
