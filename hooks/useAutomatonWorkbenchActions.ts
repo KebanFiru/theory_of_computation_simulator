@@ -74,7 +74,7 @@ export function useAutomatonWorkbenchActions({
     };
   }, [dfaManager.savedDFAs, lastCanvasPos, scale, selectedDFAName]);
 
-  const addTextArtifact = useCallback((type: "CFG" | "Regex", name: string, content: string, relatedName?: string | null) => {
+  const addTextArtifact = useCallback((type: "CFG", name: string, content: string, relatedName?: string | null) => {
     const anchor = getRelatedAnchor(relatedName);
     setTextArtifacts(prev => [
       ...prev,
@@ -282,7 +282,7 @@ export function useAutomatonWorkbenchActions({
 
   const handleCreateGnfa = useCallback(() => {
     if (!selectedDFAName) {
-      showToast("Select an FA first to convert to Regex.", "info");
+      showToast("Select an FA first to create a GNFA.", "info");
       return;
     }
     const source = dfaManager.savedDFAs[selectedDFAName];
@@ -292,16 +292,21 @@ export function useAutomatonWorkbenchActions({
     }
 
     if (isSavedTm(selectedDFAName)) {
-      showToast("Selected automaton is a TM. Regex conversion is FA-only.", "info");
+      showToast("Selected automaton is a TM. GNFA creation is FA-only.", "info");
       return;
     }
 
     const sourceAlphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? (source.table?.[0] ?? []).slice(1);
     const gnfa = GNFA.fromSavedFA(source, sourceAlphabet);
-    const regex = gnfa.toRegex();
-    addTextArtifact("Regex", `${selectedDFAName}-Regex`, regex, selectedDFAName);
-    showToast(`Generated regex for ${selectedDFAName}.`, "success");
-  }, [addTextArtifact, dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, showToast]);
+    const preview = gnfa.toSavedPreview(selectedDFAName);
+    const sourceBounds = source.bounds;
+    setImportPreview(preview);
+    setImportCursor({
+      x: Math.max(sourceBounds.x1, sourceBounds.x2) + 660,
+      y: (sourceBounds.y1 + sourceBounds.y2) / 2
+    });
+    showToast("Move cursor and click to place created GNFA.", "info");
+  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, setImportCursor, setImportPreview, showToast]);
 
   const handleCreateCfg = useCallback(() => {
     if (!selectedDFAName) {

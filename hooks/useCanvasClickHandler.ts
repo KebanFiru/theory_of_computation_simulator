@@ -144,7 +144,7 @@ export function useCanvasClickHandler({
       setSelectedDFAName(null);
     }
 
-    if (!road) {
+    if (!road && !tmTransitionMode) {
       const hitRadius = 10;
       let hitTransition: { from: number; to: number } | null = null;
 

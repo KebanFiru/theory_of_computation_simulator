@@ -42,7 +42,7 @@ export type FaTransitionDialogState = {
 export type TextArtifact = {
   id: string;
   name: string;
-  type: "CFG" | "Regex";
+  type: "CFG";
   content: string;
   position: { x: number; y: number };
   relatedDFAName?: string;

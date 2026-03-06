@@ -31,11 +31,7 @@ export default function FloatingArtifacts({ textArtifacts, scale, offset, canvas
                 ✕
               </button>
             </div>
-            {item.type === "Regex" ? (
-              <div className="font-mono text-[var(--text)] break-all">{item.content}</div>
-            ) : (
-              <pre className="text-[10px] max-h-48 overflow-auto whitespace-pre-wrap text-[var(--text)]">{item.content}</pre>
-            )}
+            <pre className="text-[10px] max-h-48 overflow-auto whitespace-pre-wrap text-[var(--text)]">{item.content}</pre>
           </div>
         );
       })}
