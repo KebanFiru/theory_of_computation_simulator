@@ -9,12 +9,11 @@ export type TransitionLike = {
 export type TransitionLabelErrorCode =
   | "invalid-index"
   | "tm-format"
-  | "tm-duplicate-read"
   | "fa-duplicate-symbol";
 
 export type TransitionLabelResolution =
   | { kind: "set"; value: string }
-  | { kind: "error"; code: TransitionLabelErrorCode; from?: number; read?: string };
+  | { kind: "error"; code: TransitionLabelErrorCode };
 
 export type ResolveTransitionLabelArgs = {
   arrowPairs: TransitionLike[];

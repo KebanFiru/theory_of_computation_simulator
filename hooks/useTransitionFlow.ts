@@ -37,28 +37,17 @@ export function useTransitionFlow({
     const label = tmTransitionDialog.value.trim();
     const parsed = Transition.parseTmLabel(label);
     if (!parsed) {
-      showToast("Invalid TM transition. Use single-symbol read/write,direction (e.g. 0/1,R or _/_,N).", "error");
+      showToast("Invalid TM transition. Use read/write,move segments (e.g. 0/1,R or 0/1,R;_/_,N).", "error");
       return;
     }
 
     const { from, to } = tmTransitionDialog;
-    const duplicateByRead = Transition.hasDuplicateTmRead({
-      arrowPairs,
-      from,
-      read: parsed.read
-    });
-
-    if (duplicateByRead) {
-      showToast(`TM already has a transition from q${from} reading "${parsed.read}".`, "error");
-      return;
-    }
-
-    const normalizedLabel = `${parsed.read}/${parsed.write},${parsed.move}`;
+    const normalizedLabel = Transition.formatTmLabel(parsed);
     setArrowPairs(prev => [...prev, Transition.create(from, to, normalizedLabel)]);
     const slotKey = `${from}-${to}`;
     setTransitionSlots(prev => ({ ...prev, [slotKey]: (prev[slotKey] ?? 0) + 1 }));
     setTmTransitionDialog({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
-  }, [arrowPairs, tmTransitionDialog, setArrowPairs, setTmTransitionDialog, setTransitionSlots, showToast]);
+  }, [tmTransitionDialog, setArrowPairs, setTmTransitionDialog, setTransitionSlots, showToast]);
 
   useEffect(() => {
     const pairs = new Set<string>();
@@ -68,10 +57,6 @@ export function useTransitionFlow({
     pairs.forEach(key => {
       const [from, to] = key.split("-").map(Number);
       const arrowsBetween = arrowPairs.filter(p => p.from === from && p.to === to);
-      // Only fill slots for pairs that have been explicitly registered in transitionSlots.
-      // Using `?? alphabet.length` as a fallback would add spurious arrows when transitionSlots
-      // is stale (e.g. re-render from setAlphabet inside saveDFA), causing duplicates on
-      // bidirectional transitions.
       const limit = transitionSlots[key];
       if (limit === undefined) return;
       const missing = limit - arrowsBetween.length;

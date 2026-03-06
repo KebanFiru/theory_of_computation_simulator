@@ -75,10 +75,8 @@ export function useAutomatonEditFlow({
   }, [dfaName, dfaManager.savedDFAs, nameDialogMode, saveSelectionWithName, selection.selectionRect, setOverwriteDialog, showToast]);
 
   const handleCancelDialog = useCallback(() => {
-    setShowNameDialog(false);
-    setDfaName("");
-    setNameDialogMode("FA");
-  }, [setDfaName, setNameDialogMode, setShowNameDialog]);
+    closeNameFlow();
+  }, [closeNameFlow]);
 
   const handleOverwriteConfirm = useCallback(() => {
     if (!overwriteDialog.selectionRect) {

@@ -1,35 +1,21 @@
 import type {
+  MoveDirection,
   TmExecutionResult,
   TmSnapshotSource,
   TmTransition
 } from "../../types/turing";
 import { Transition } from "../util-classes/transition";
 
-/**
- * Turing Machine — formal 7-tuple per Wikipedia:
- * M = ⟨Q, Γ, b, Σ, δ, q0, F⟩
- *
- * Q          — finite non-empty set of states
- * Γ          — finite non-empty tape alphabet
- * b ∈ Γ      — blank symbol
- * Σ ⊆ Γ\{b}  — input alphabet
- * δ          — partial transition function (Q\F) × Γ ⇀ Q × Γ × {L,R,N}
- * q0 ∈ Q     — initial state
- * F ⊆ Q      — set of final (accepting) states
- *
- * The machine halts (and implicitly rejects) when δ is undefined
- * for the current (state, symbol) pair and the state is not in F.
- * There are no explicit reject states in this definition.
- */
 export class TuringMachine {
-  readonly states: string[];          // Q
-  readonly inputAlphabet: string[];   // Σ
-  readonly tapeAlphabet: string[];    // Γ
-  readonly blankSymbol: string;       // b
-  readonly startState: string;        // q0
-  readonly finalStates: string[];     // F (accepting/halting states)
-  readonly rejectStates: string[];    // optional explicit reject states (extension)
-  readonly transitions: TmTransition[]; // δ
+  readonly states: string[];
+  readonly inputAlphabet: string[];
+  readonly tapeAlphabet: string[];
+  readonly blankSymbol: string;
+  readonly tapeCount: number;
+  readonly startState: string;
+  readonly finalStates: string[];
+  readonly rejectStates: string[];
+  readonly transitions: TmTransition[];
   readonly validationIssues: string[];
 
   constructor(args: {
@@ -37,6 +23,7 @@ export class TuringMachine {
     inputAlphabet: string[];
     tapeAlphabet: string[];
     blankSymbol: string;
+    tapeCount?: number;
     startState: string;
     finalStates: string[];
     rejectStates?: string[];
@@ -47,11 +34,26 @@ export class TuringMachine {
     this.inputAlphabet = args.inputAlphabet;
     this.tapeAlphabet = args.tapeAlphabet;
     this.blankSymbol = args.blankSymbol;
+    this.tapeCount = Math.max(1, args.tapeCount ?? TuringMachine.inferTapeCount(args.transitions));
     this.startState = args.startState;
     this.finalStates = args.finalStates;
     this.rejectStates = args.rejectStates ?? [];
     this.transitions = args.transitions;
     this.validationIssues = args.validationIssues ?? [];
+  }
+
+  private static inferTapeCount(transitions: TmTransition[]) {
+    if (transitions.length === 0) return 1;
+
+    return transitions.reduce((max, transition) => {
+      const localMax = Math.max(
+        transition.reads.length,
+        transition.writes.length,
+        transition.moves.length,
+        1
+      );
+      return Math.max(max, localMax);
+    }, 1);
   }
 
   static isTmStateColor(color: string) {
@@ -89,8 +91,9 @@ export class TuringMachine {
 
     const transitions: TmTransition[] = [];
     const issues: string[] = [];
-    const seenDeterministic = new Set<string>();
     const inferredSymbols = new Set<string>();
+    const inferredInputSymbols = new Set<string>();
+    let expectedTapeCount: number | null = null;
 
     arrowPairs.forEach(pair => {
       const fromLabel = labelByIndex.get(pair.from);
@@ -103,22 +106,31 @@ export class TuringMachine {
         return;
       }
 
-      const deterministicKey = `${fromLabel}|${parsed.read}`;
-      if (seenDeterministic.has(deterministicKey)) {
-        issues.push(`Non-deterministic TM transition for (${fromLabel}, ${parsed.read}).`);
+      if (expectedTapeCount === null) {
+        expectedTapeCount = parsed.tapeCount;
+      }
+
+      if (expectedTapeCount !== parsed.tapeCount) {
+        issues.push(
+          `Inconsistent TM tape count on ${fromLabel} → ${toLabel}: expected ${expectedTapeCount}, got ${parsed.tapeCount}.`
+        );
         return;
       }
-      seenDeterministic.add(deterministicKey);
 
-      inferredSymbols.add(parsed.read);
-      inferredSymbols.add(parsed.write);
+      parsed.reads.forEach(symbol => inferredSymbols.add(symbol));
+      parsed.writes.forEach(symbol => inferredSymbols.add(symbol));
+
+      const firstRead = parsed.reads[0];
+      const firstWrite = parsed.writes[0];
+      if (firstRead) inferredInputSymbols.add(firstRead);
+      if (firstWrite) inferredInputSymbols.add(firstWrite);
 
       transitions.push({
         from: fromLabel,
-        read: parsed.read,
         to: toLabel,
-        write: parsed.write,
-        move: parsed.move
+        reads: parsed.reads,
+        writes: parsed.writes,
+        moves: parsed.moves
       });
     });
 
@@ -129,15 +141,17 @@ export class TuringMachine {
         .filter(symbol => symbol && symbol !== blankSymbol)
     ));
 
-    const inferredInputAlphabet = Array.from(inferredSymbols).filter(symbol => symbol !== blankSymbol);
+    const inferredInputAlphabet = Array.from(inferredInputSymbols).filter(symbol => symbol !== blankSymbol);
     const inputAlphabet = Array.from(new Set([...sanitizedInputAlphabet, ...inferredInputAlphabet]));
     const tapeAlphabet = Array.from(new Set([...inputAlphabet, ...Array.from(inferredSymbols), blankSymbol]));
+    const tapeCount = expectedTapeCount ?? 1;
 
     return new TuringMachine({
       states: tmStateIndices.map(({ index }) => labelByIndex.get(index) ?? `q${index}`),
       inputAlphabet,
       tapeAlphabet,
       blankSymbol,
+      tapeCount,
       startState,
       finalStates,
       rejectStates,
@@ -152,40 +166,94 @@ export class TuringMachine {
       inputAlphabet: ["0", "1"],
       tapeAlphabet: ["0", "1", "_"],
       blankSymbol: "_",
+      tapeCount: 1,
       startState: "q0",
       finalStates: ["qaccept"],
       rejectStates: [],
       transitions: [
-        { from: "q0", read: "0", to: "q0", write: "0", move: "R" },
-        { from: "q0", read: "1", to: "q0", write: "1", move: "R" },
-        { from: "q0", read: "_", to: "qaccept", write: "_", move: "N" }
+        { from: "q0", to: "q0", reads: ["0"], writes: ["0"], moves: ["R"] },
+        { from: "q0", to: "q0", reads: ["1"], writes: ["1"], moves: ["R"] },
+        { from: "q0", to: "qaccept", reads: ["_"], writes: ["_"], moves: ["N"] }
       ]
     });
   }
 
+  private normalizeTransition(transition: TmTransition) {
+    const reads = Array.from({ length: this.tapeCount }).map((_, index) =>
+      transition.reads[index] ?? this.blankSymbol
+    );
+    const writes = Array.from({ length: this.tapeCount }).map((_, index) =>
+      transition.writes[index] ?? reads[index]
+    );
+    const moves = Array.from({ length: this.tapeCount }).map((_, index) =>
+      transition.moves[index] ?? "N"
+    ) as MoveDirection[];
+
+    return { reads, writes, moves };
+  }
+
+  private getReadKey(state: string, reads: string[]) {
+    return `${state}|${reads.join("\u241f")}`;
+  }
+
+  private isNondeterministic() {
+    const counts = new Map<string, number>();
+
+    this.transitions.forEach(transition => {
+      const normalized = this.normalizeTransition(transition);
+      const key = this.getReadKey(transition.from, normalized.reads);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+
+    return Array.from(counts.values()).some(count => count > 1);
+  }
+
   toTransitionTable() {
-    const header = ["State", "Read", "Write", "Move", "Next"];
+    const header = this.tapeCount === 1
+      ? ["State", "Read", "Write", "Move", "Next"]
+      : [
+          "State",
+          ...Array.from({ length: this.tapeCount }).flatMap((_, index) => [
+            `Read ${index + 1}`,
+            `Write ${index + 1}`,
+            `Move ${index + 1}`
+          ]),
+          "Next"
+        ];
+
     if (this.transitions.length === 0) {
-      return [header, ["-", "-", "-", "-", "-"]];
+      return [header, Array.from({ length: header.length }).map(() => "-")];
     }
 
     const rows = [...this.transitions]
       .sort((left, right) => {
         const fromCompare = left.from.localeCompare(right.from);
         if (fromCompare !== 0) return fromCompare;
-        const readCompare = left.read.localeCompare(right.read);
+        const leftRead = this.normalizeTransition(left).reads.join("");
+        const rightRead = this.normalizeTransition(right).reads.join("");
+        const readCompare = leftRead.localeCompare(rightRead);
         if (readCompare !== 0) return readCompare;
         return left.to.localeCompare(right.to);
       })
       .map(transition => {
+        const normalized = this.normalizeTransition(transition);
         const stateLabel = this.finalStates.includes(transition.from)
           ? `${transition.from}*`
           : transition.from;
+
+        if (this.tapeCount === 1) {
+          return [
+            stateLabel,
+            normalized.reads[0],
+            normalized.writes[0],
+            normalized.moves[0],
+            transition.to
+          ];
+        }
+
         return [
           stateLabel,
-          transition.read,
-          transition.write,
-          transition.move,
+          ...normalized.reads.flatMap((read, index) => [read, normalized.writes[index], normalized.moves[index]]),
           transition.to
         ];
       });
@@ -215,18 +283,30 @@ export class TuringMachine {
       };
     }
 
-    const transitionMap = new Map<string, TmTransition>();
+    const transitionMap = new Map<string, Array<{
+      to: string;
+      reads: string[];
+      writes: string[];
+      moves: MoveDirection[];
+    }>>();
+
     this.transitions.forEach(transition => {
-      transitionMap.set(`${transition.from}|${transition.read}`, transition);
+      const normalized = this.normalizeTransition(transition);
+      const key = this.getReadKey(transition.from, normalized.reads);
+      const existing = transitionMap.get(key) ?? [];
+      existing.push({
+        to: transition.to,
+        reads: normalized.reads,
+        writes: normalized.writes,
+        moves: normalized.moves
+      });
+      transitionMap.set(key, existing);
     });
 
-    const tape = new Map<number, string>();
-    inputSymbols.forEach((symbol, index) => {
-      tape.set(index, symbol);
-    });
+    const readTape = (tape: Map<number, string>, position: number) =>
+      tape.get(position) ?? this.blankSymbol;
 
-    const readTape = (position: number) => tape.get(position) ?? this.blankSymbol;
-    const writeTape = (position: number, symbol: string) => {
+    const writeTape = (tape: Map<number, string>, position: number, symbol: string) => {
       if (symbol === this.blankSymbol) {
         tape.delete(position);
         return;
@@ -234,37 +314,108 @@ export class TuringMachine {
       tape.set(position, symbol);
     };
 
-    let state = this.startState;
-    let head = 0;
+    const serializeTape = (tape: Map<number, string>) =>
+      Array.from(tape.entries())
+        .sort((left, right) => left[0] - right[0])
+        .map(([index, symbol]) => `${index}:${symbol}`)
+        .join(",");
 
-    for (let step = 0; step < maxSteps; step += 1) {
-      if (this.finalStates.includes(state)) {
+    const serializeConfig = (config: {
+      state: string;
+      heads: number[];
+      tapes: Array<Map<number, string>>;
+    }) => `${config.state}|${config.heads.join(",")}|${config.tapes.map(serializeTape).join("|")}`;
+
+    const initialTapes = Array.from({ length: this.tapeCount }).map((_, tapeIndex) => {
+      const tape = new Map<number, string>();
+      if (tapeIndex === 0) {
+        inputSymbols.forEach((symbol, index) => {
+          tape.set(index, symbol);
+        });
+      }
+      return tape;
+    });
+
+    const initialConfig = {
+      state: this.startState,
+      heads: Array.from({ length: this.tapeCount }).map(() => 0),
+      tapes: initialTapes
+    };
+
+    const seenConfigurations = new Set<string>();
+    seenConfigurations.add(serializeConfig(initialConfig));
+    const maxVisitedConfigurations = 100_000;
+
+    let frontier = [initialConfig];
+
+    for (let step = 0; step <= maxSteps; step += 1) {
+      const accepted = frontier.some(config => this.finalStates.includes(config.state));
+      if (accepted) {
         return {
           status: "Valid",
-          detail: `Accepted in ${step} step(s).`
+          detail: `Accepted in ${step} step(s) (${this.tapeCount}-tape ${this.isNondeterministic() ? "NTM" : "DTM"}).`
         };
       }
 
-      if (this.rejectStates.includes(state)) {
+      if (step === maxSteps) {
+        break;
+      }
+
+      const nextFrontier: typeof frontier = [];
+
+      for (const config of frontier) {
+        if (this.rejectStates.includes(config.state)) {
+          continue;
+        }
+
+        const reads = config.tapes.map((tape, tapeIndex) => readTape(tape, config.heads[tapeIndex]));
+        const key = this.getReadKey(config.state, reads);
+        const candidates = transitionMap.get(key) ?? [];
+
+        for (const candidate of candidates) {
+          const nextHeads = [...config.heads];
+          const nextTapes = config.tapes.map(tape => new Map(tape));
+
+          for (let tapeIndex = 0; tapeIndex < this.tapeCount; tapeIndex += 1) {
+            const headPosition = nextHeads[tapeIndex];
+            writeTape(nextTapes[tapeIndex], headPosition, candidate.writes[tapeIndex]);
+
+            const move = candidate.moves[tapeIndex];
+            if (move === "L") nextHeads[tapeIndex] -= 1;
+            if (move === "R") nextHeads[tapeIndex] += 1;
+          }
+
+          const nextConfig = {
+            state: candidate.to,
+            heads: nextHeads,
+            tapes: nextTapes
+          };
+
+          const signature = serializeConfig(nextConfig);
+          if (seenConfigurations.has(signature)) {
+            continue;
+          }
+
+          seenConfigurations.add(signature);
+          if (seenConfigurations.size > maxVisitedConfigurations) {
+            return {
+              status: "Invalid",
+              detail: `Configuration limit (${maxVisitedConfigurations}) exceeded while exploring nondeterministic branches.`
+            };
+          }
+
+          nextFrontier.push(nextConfig);
+        }
+      }
+
+      if (nextFrontier.length === 0) {
         return {
           status: "Invalid",
-          detail: `Rejected in explicit reject state (${state}) after ${step} step(s).`
+          detail: "All branches halted without reaching an accept state."
         };
       }
 
-      const read = readTape(head);
-      const transition = transitionMap.get(`${state}|${read}`);
-      if (!transition) {
-        return {
-          status: "Invalid",
-          detail: `No transition for (${state}, ${read}); machine halts and rejects.`
-        };
-      }
-
-      writeTape(head, transition.write);
-      if (transition.move === "L") head -= 1;
-      if (transition.move === "R") head += 1;
-      state = transition.to;
+      frontier = nextFrontier;
     }
 
     return {
@@ -276,8 +427,8 @@ export class TuringMachine {
   toJSON() {
     return {
       type: "TuringMachine",
-      // 7-tuple components labeled per Wikipedia
       Q: this.states,
+      k: this.tapeCount,
       Gamma: this.tapeAlphabet,
       b: this.blankSymbol,
       Sigma: this.inputAlphabet,
@@ -285,6 +436,7 @@ export class TuringMachine {
       q0: this.startState,
       F: this.finalStates,
       rejectStates: this.rejectStates,
+      nondeterministic: this.isNondeterministic(),
       validationIssues: this.validationIssues
     };
   }

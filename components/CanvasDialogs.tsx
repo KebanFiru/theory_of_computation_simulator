@@ -97,7 +97,7 @@ export default function CanvasDialogs({
         <div className="fixed inset-0 bg-[var(--overlay)] flex items-center justify-center z-[70]">
           <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-md w-full border border-[var(--border)]">
             <h3 className="text-lg font-bold mb-3 text-[var(--text)]">TM Transition</h3>
-            <p className="text-sm text-[var(--text-subtle)] mb-3">Format: read/write,move with single symbols (example: 0/1,R)</p>
+            <p className="text-sm text-[var(--text-subtle)] mb-3">Format: read/write,move segments (single tape: 0/1,R · multi tape: 0/1,R;_/_,N)</p>
             <input
               className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-4 text-[var(--text)]"
               value={tmTransitionDialog.value}

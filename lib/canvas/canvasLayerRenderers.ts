@@ -1,4 +1,4 @@
-import type { Bounds, SavedDFAs, SelectionRect } from "../../types/domain";
+import type { SavedDFAs, SelectionRect } from "../../types/domain";
 import type { CanvasTheme, LabelPaletteResolver } from "../../types/canvas";
 import type { State } from "../util-classes/state";
 import { Transition } from "../util-classes/transition";
@@ -213,22 +213,6 @@ export function renderSelectionRectLayer(
   ctx.setLineDash([]);
 }
 
-function computeLiveEditingBounds(editMode: boolean | undefined, editingDFAName: string | null | undefined, states: State[]): Bounds | null {
-  if (!editMode || !editingDFAName || states.length === 0) return null;
-
-  const padding = 24;
-  const minX = Math.min(...states.map(item => item.x));
-  const maxX = Math.max(...states.map(item => item.x));
-  const minY = Math.min(...states.map(item => item.y));
-  const maxY = Math.max(...states.map(item => item.y));
-  return {
-    x1: minX - padding,
-    y1: minY - padding,
-    x2: maxX + padding,
-    y2: maxY + padding
-  };
-}
-
 export function renderSavedBoundsLayer(args: {
   ctx: CanvasRenderingContext2D;
   savedDFAs: SavedDFAs;
@@ -238,14 +222,14 @@ export function renderSavedBoundsLayer(args: {
   selectedDFAName?: string | null;
   theme: CanvasTheme;
 }) {
-  const { ctx, savedDFAs, editMode, editingDFAName, states, selectedDFAName, theme } = args;
-  const liveEditingBounds = computeLiveEditingBounds(editMode, editingDFAName, states);
+  const { ctx, savedDFAs, editMode, editingDFAName, selectedDFAName, theme } = args;
 
   Object.entries(savedDFAs).forEach(([name, data]) => {
-    const bounds =
-      editMode && editingDFAName === name && liveEditingBounds
-        ? liveEditingBounds
-        : data.bounds;
+    if (editMode && editingDFAName === name) {
+      return;
+    }
+
+    const bounds = data.bounds;
     if (!Number.isFinite(bounds.x1) || !Number.isFinite(bounds.x2) || !Number.isFinite(bounds.y1) || !Number.isFinite(bounds.y2)) {
       return;
     }

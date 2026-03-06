@@ -55,46 +55,52 @@ export class Transition {
 
   static parseTmLabel(label: string): ParsedTmLabel | null {
     const compact = label.replace(/\s+/g, "");
-    const [rwPart, movePart] = compact.split(",");
-    if (!rwPart || !movePart) return null;
+    if (!compact) return null;
 
-    const move = movePart.toUpperCase();
-    if (move !== "L" && move !== "R" && move !== "N") return null;
+    const segments = compact.split(";").filter(Boolean);
+    if (segments.length === 0) return null;
 
-    const [readPart, writePart] = rwPart.split("/");
-    if (!readPart || !writePart) return null;
+    const reads: string[] = [];
+    const writes: string[] = [];
+    const moves: ParsedTmLabel["moves"] = [];
 
-    const readLength = Array.from(readPart).length;
-    const writeLength = Array.from(writePart).length;
-    if (readLength !== 1 || writeLength !== 1) return null;
+    for (const segment of segments) {
+      const [rwPart, movePart, extraPart] = segment.split(",");
+      if (!rwPart || !movePart || extraPart !== undefined) return null;
+
+      const move = movePart.toUpperCase();
+      if (move !== "L" && move !== "R" && move !== "N") return null;
+
+      const [readPart, writePart, extraRw] = rwPart.split("/");
+      if (!readPart || !writePart || extraRw !== undefined) return null;
+
+      const readLength = Array.from(readPart).length;
+      const writeLength = Array.from(writePart).length;
+      if (readLength !== 1 || writeLength !== 1) return null;
+
+      reads.push(readPart);
+      writes.push(writePart);
+      moves.push(move);
+    }
 
     return {
-      read: readPart,
-      write: writePart,
-      move
+      reads,
+      writes,
+      moves,
+      tapeCount: segments.length
     };
+  }
+
+  static formatTmLabel(parsed: ParsedTmLabel) {
+    return parsed.reads
+      .map((read, index) => `${read}/${parsed.writes[index]},${parsed.moves[index]}`)
+      .join(";");
   }
 
   static isTmTransitionPair(states: State[], pair: TransitionLike) {
     const fromState = states[pair.from];
     const toState = states[pair.to];
     return !!fromState?.color?.startsWith("tm-") && !!toState?.color?.startsWith("tm-");
-  }
-
-  static hasDuplicateTmRead(args: {
-    arrowPairs: TransitionLike[];
-    from: number;
-    read: string;
-    excludeIndex?: number;
-  }) {
-    const { arrowPairs, from, read, excludeIndex } = args;
-    return arrowPairs.some((pair, pairIndex) => {
-      if (excludeIndex !== undefined && pairIndex === excludeIndex) return false;
-      if (pair.from !== from) return false;
-      const parsed = Transition.parseTmLabel(pair.label ?? "");
-      if (!parsed) return false;
-      return parsed.read === read;
-    });
   }
 
   static resolveLabelUpdate({
@@ -118,23 +124,9 @@ export class Transition {
         return { kind: "error", code: "tm-format" };
       }
 
-      if (Transition.hasDuplicateTmRead({
-        arrowPairs,
-        from: pair.from,
-        read: parsed.read,
-        excludeIndex: index
-      })) {
-        return {
-          kind: "error",
-          code: "tm-duplicate-read",
-          from: pair.from,
-          read: parsed.read
-        };
-      }
-
       return {
         kind: "set",
-        value: `${parsed.read}/${parsed.write},${parsed.move}`
+        value: Transition.formatTmLabel(parsed)
       };
     }
 
@@ -224,7 +216,7 @@ export class Transition {
           fromCircle.color.startsWith("tm-") && toCircle.color.startsWith("tm-");
         const textLength = Math.max(value.length, 1);
         const boxWidth = isTmTransition
-          ? Math.min(168, Math.max(54, textLength * 7 + 10))
+          ? Math.min(260, Math.max(54, textLength * 7 + 10))
           : 24;
 
         descriptors.push({

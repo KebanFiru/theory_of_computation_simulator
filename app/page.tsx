@@ -18,7 +18,7 @@ import { useCanvasKeyboardShortcuts } from "../hooks/useCanvasKeyboardShortcuts"
 import { useCanvasPointerHandlers } from "../hooks/useCanvasPointerHandlers";
 import { useFinalizeSelectionFlow } from "../hooks/useFinalizeSelectionFlow";
 import { useCanvasClickHandler } from "../hooks/useCanvasClickHandler";
-import { useAutomatonWorkbenchActions } from "../hooks/useAutomatonWorkbenchActions";
+import { useAutomatonWorkbenchActions } from "@/hooks/useAutomatonWorkbenchActions";
 import { useAutomatonEditFlow } from "../hooks/useAutomatonEditFlow";
 import { useToast } from "../hooks/useToast";
 import { useViewportRefresh } from "../hooks/useViewportRefresh";
@@ -338,12 +338,7 @@ export default function Canvas() {
 
           if (resolution.kind === "error") {
             if (resolution.code === "tm-format") {
-              showToast("TM labels must be in read/write,direction format (e.g. 0/1,R).", "error");
-              return;
-            }
-
-            if (resolution.code === "tm-duplicate-read") {
-              showToast(`TM already has a transition from q${resolution.from} reading "${resolution.read}".`, "error");
+              showToast("TM labels must use read/write,move segments (e.g. 0/1,R or 0/1,R;_/_,N).", "error");
               return;
             }
 
