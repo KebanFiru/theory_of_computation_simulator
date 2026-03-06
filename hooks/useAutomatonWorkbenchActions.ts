@@ -2,13 +2,14 @@
 import { useCallback } from "react";
 import { State } from "../lib/util-classes/state";
 import { Transition } from "../lib/util-classes/transition";
-import { SavedFA, buildNFAFromRegex } from "../lib/automata/index";
+import { EPSILON, SavedFA, buildNFAFromRegex } from "../lib/automata/index";
 import { CFG, DFA, GNFA } from "../lib/models";
 import type { UseAutomatonWorkbenchActionsParams } from "../types/hooks";
 
 export function useAutomatonWorkbenchActions({
   dfaManager,
   selectedDFAName,
+  scale,
   setSelectedDFAName,
   setImportPreview,
   setImportCursor,
@@ -61,14 +62,19 @@ export function useAutomatonWorkbenchActions({
     if (!related) {
       return lastCanvasPos ?? { x: 40, y: 40 };
     }
-    const b = related.bounds;
-    return {
-      x: Math.max(b.x1, b.x2) + 30,
-      y: Math.min(b.y1, b.y2)
-    };
-  }, [dfaManager.savedDFAs, lastCanvasPos, selectedDFAName]);
 
-  const addTextArtifact = useCallback((type: "CFG", name: string, content: string, relatedName?: string | null) => {
+    const b = related.bounds;
+    const cardWidthPx = 300;
+    const gapPx = 20;
+    const safeScale = Math.max(scale, 0.1);
+
+    return {
+      x: Math.min(b.x1, b.x2) + (cardWidthPx + gapPx) / safeScale,
+      y: Math.max(b.y1, b.y2) + 5
+    };
+  }, [dfaManager.savedDFAs, lastCanvasPos, scale, selectedDFAName]);
+
+  const addTextArtifact = useCallback((type: "CFG" | "Regex", name: string, content: string, relatedName?: string | null) => {
     const anchor = getRelatedAnchor(relatedName);
     setTextArtifacts(prev => [
       ...prev,
@@ -275,7 +281,7 @@ export function useAutomatonWorkbenchActions({
 
   const handleCreateGnfa = useCallback(() => {
     if (!selectedDFAName) {
-      showToast("Select an FA first to create a GNFA.", "info");
+      showToast("Select an FA first to convert to Regex.", "info");
       return;
     }
     const source = dfaManager.savedDFAs[selectedDFAName];
@@ -285,28 +291,103 @@ export function useAutomatonWorkbenchActions({
     }
 
     if (isSavedTm(selectedDFAName)) {
-      showToast("Selected automaton is a TM. GNFA creation is FA-only.", "info");
+      showToast("Selected automaton is a TM. Regex conversion is FA-only.", "info");
       return;
     }
 
     const sourceAlphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? (source.table?.[0] ?? []).slice(1);
     const gnfa = GNFA.fromSavedFA(source, sourceAlphabet);
-    const preview = gnfa.toSavedPreview(selectedDFAName);
-
-    const sourceBounds = source.bounds;
-    setImportPreview(preview);
-    setImportCursor({
-      x: Math.max(sourceBounds.x1, sourceBounds.x2) + 660,
-      y: (sourceBounds.y1 + sourceBounds.y2) / 2
-    });
-    showToast("Move cursor and click to place created GNFA.", "info");
-  }, [dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, setImportCursor, setImportPreview, showToast]);
+    const regex = gnfa.toRegex();
+    addTextArtifact("Regex", `${selectedDFAName}-Regex`, regex, selectedDFAName);
+    showToast(`Generated regex for ${selectedDFAName}.`, "success");
+  }, [addTextArtifact, dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, showToast]);
 
   const handleCreateCfg = useCallback(() => {
-    const cfg = CFG.createDefault();
-    addTextArtifact("CFG", "CFG", JSON.stringify(cfg.toJSON(), null, 2));
-    showToast("Created CFG artifact near related item.", "success");
-  }, [addTextArtifact, showToast]);
+    if (!selectedDFAName) {
+      showToast("Select an FA first to create a CFG.", "info");
+      return;
+    }
+
+    const source = dfaManager.savedDFAs[selectedDFAName];
+    if (!source) {
+      showToast("Selected FA not found.", "error");
+      return;
+    }
+
+    if (isSavedTm(selectedDFAName)) {
+      showToast("Selected automaton is a TM. CFG creation is FA-only.", "info");
+      return;
+    }
+
+    const sourceAlphabet = dfaManager.dfaAlphabets[selectedDFAName] ?? (source.table?.[0] ?? []).slice(1);
+    const automaton = SavedFA.toAutomaton(source, sourceAlphabet);
+    const stateIds = Array.from(automaton.states).sort((left, right) => left - right);
+
+    if (stateIds.length === 0) {
+      showToast("Selected FA has no states.", "error");
+      return;
+    }
+
+    const orderedStateIds = [automaton.startState, ...stateIds.filter(state => state !== automaton.startState)];
+    const variableByState = new Map<number, string>();
+    const variables = orderedStateIds.map((stateId, index) => {
+      const variable = index === 0 ? "S" : `A${index}`;
+      variableByState.set(stateId, variable);
+      return variable;
+    });
+
+    const terminals = Array.from(new Set(sourceAlphabet.map(symbol => String(symbol).trim()).filter(symbol => symbol && symbol !== EPSILON)));
+    const productions: Record<string, string[]> = {};
+    variables.forEach(variable => {
+      productions[variable] = [];
+    });
+
+    const addProduction = (from: string, value: string) => {
+      if (!value) return;
+      if (!productions[from]) {
+        productions[from] = [];
+      }
+      if (!productions[from].includes(value)) {
+        productions[from].push(value);
+      }
+    };
+
+    automaton.forEachTransition((from, to, symbol) => {
+      const fromVar = variableByState.get(from);
+      const toVar = variableByState.get(to);
+      if (!fromVar || !toVar) return;
+
+      if (symbol === EPSILON) {
+        addProduction(fromVar, toVar);
+        return;
+      }
+
+      addProduction(fromVar, `${symbol}${toVar}`);
+      if (automaton.acceptStates.has(to)) {
+        addProduction(fromVar, symbol);
+      }
+    });
+
+    automaton.acceptStates.forEach(acceptState => {
+      const acceptVar = variableByState.get(acceptState);
+      if (!acceptVar) return;
+      addProduction(acceptVar, "ε");
+    });
+
+    const startVariable = variables[0] ?? "S";
+    const cfg = new CFG(variables, terminals, startVariable, productions);
+    const productionLines = Object.entries(cfg.productions)
+      .map(([v, rhs]) => `  ${v} → ${rhs.join(" | ")}`);
+    const cfgText = [
+      `Variables: ${cfg.variables.join(", ")}`,
+      `Terminals: ${cfg.terminals.join(", ")}`,
+      `Start: ${cfg.startVariable}`,
+      `Productions:`,
+      ...productionLines
+    ].join("\n");
+    addTextArtifact("CFG", `${selectedDFAName}-CFG`, cfgText, selectedDFAName);
+    showToast(`Created CFG for ${selectedDFAName}.`, "success");
+  }, [addTextArtifact, dfaManager.dfaAlphabets, dfaManager.savedDFAs, isSavedTm, selectedDFAName, showToast]);
 
   const handleImportJson = useCallback((file: File) => {
     const reader = new FileReader();

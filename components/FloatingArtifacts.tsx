@@ -13,19 +13,29 @@ export default function FloatingArtifacts({ textArtifacts, scale, offset, canvas
         return (
           <div
             key={item.id}
-            className="fixed z-[45] w-[320px] rounded-xl border border-[var(--border)] bg-[var(--surface-overlay-strong)] shadow-lg p-3"
-            style={{ left, top }}
+            className="fixed z-[45] rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-lg p-3 text-xs"
+            style={{
+              left,
+              top,
+              width: "220px",
+              transform: `scale(${scale})`,
+              transformOrigin: "top left"
+            }}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-[var(--info)]">{item.type}: {item.name}</span>
+              <span className="font-semibold text-[var(--info)]">{item.type}: {item.name}</span>
               <button
-                className="text-xs px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]"
+                className="px-2 py-1 rounded border border-[var(--border)] hover:bg-[var(--surface-muted)]"
                 onClick={() => setTextArtifacts(prev => prev.filter(card => card.id !== item.id))}
               >
-                Remove
+                ✕
               </button>
             </div>
-            <pre className="text-[10px] max-h-56 overflow-auto whitespace-pre-wrap text-[var(--text)]">{item.content}</pre>
+            {item.type === "Regex" ? (
+              <div className="font-mono text-[var(--text)] break-all">{item.content}</div>
+            ) : (
+              <pre className="text-[10px] max-h-48 overflow-auto whitespace-pre-wrap text-[var(--text)]">{item.content}</pre>
+            )}
           </div>
         );
       })}

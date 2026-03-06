@@ -193,6 +193,7 @@ export type AutomatonWorkbenchManagerApi = {
 export type UseAutomatonWorkbenchActionsParams = {
   dfaManager: AutomatonWorkbenchManagerApi;
   selectedDFAName: string | null;
+  scale: number;
   setSelectedDFAName: React.Dispatch<React.SetStateAction<string | null>>;
   setImportPreview: React.Dispatch<React.SetStateAction<ImportPreviewState>>;
   setImportCursor: React.Dispatch<React.SetStateAction<CanvasPoint | null>>;

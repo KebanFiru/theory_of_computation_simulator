@@ -35,7 +35,7 @@ export type OverwriteDialogState = {
 export type TextArtifact = {
   id: string;
   name: string;
-  type: "CFG";
+  type: "CFG" | "Regex";
   content: string;
   position: { x: number; y: number };
 };

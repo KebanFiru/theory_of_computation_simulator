@@ -114,6 +114,7 @@ export default function Canvas() {
   } = useAutomatonWorkbenchActions({
     dfaManager,
     selectedDFAName,
+    scale: canvasInteraction.scale,
     setSelectedDFAName,
     setImportPreview,
     setImportCursor,

@@ -37,7 +37,9 @@ export default function AutomatonTableDisplay({
             style={{
               left: card.left,
               top: card.top,
-              maxWidth: "300px",
+              width: "200px",
+              transform: `scale(${scale})`,
+              transformOrigin: "top left",
               zIndex: 40
             }}
             onClick={() => onSelect(name)}
@@ -66,7 +68,7 @@ export default function AutomatonTableDisplay({
                 Edit
               </button>
             </div>
-            <table className="border-collapse border border-[var(--border-strong)] text-xs w-full">
+            <table className="border-collapse border border-[var(--border-strong)] text-xs w-full table-fixed">
               <tbody>
                 {card.table.map((row, rowIndex) => (
                   <tr key={rowIndex}>
@@ -111,7 +113,7 @@ export default function AutomatonTableDisplay({
             <div className="mt-3 border-t border-[var(--border)] pt-3">
               <label className="block text-xs font-semibold text-[var(--text-subtle)] mb-1">{card.summaryTitle}</label>
               <textarea
-                className="w-full rounded border border-[var(--border-strong)] bg-[var(--surface-muted)] px-2 py-1 text-[var(--text)] text-xs"
+                className="w-full rounded border border-[var(--border-strong)] bg-[var(--surface-muted)] px-2 py-1 text-[var(--text)] text-xs resize-none"
                 value={card.summaryValue}
                 readOnly
                 rows={card.automatonType === "TM" ? 6 : 2}
