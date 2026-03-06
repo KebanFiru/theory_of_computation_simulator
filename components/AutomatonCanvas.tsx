@@ -413,16 +413,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       ctx.save();
       ctx.globalAlpha = 0.9;
 
-      snapshot.arrowPairs?.forEach(pair => {
-        const fromCircle = snapshot.states[pair.from];
-        const toCircle = snapshot.states[pair.to];
-        if (!fromCircle || !toCircle) return;
-        if (pair.from === pair.to) {
-          drawLoop(ctx, fromCircle, arrowColor);
-          return;
-        }
-        drawArrow(ctx, fromCircle, toCircle, arrowColor);
-      });
+      drawArrowsBidirectional(ctx, snapshot.arrowPairs ?? [], snapshot.states, arrowColor);
 
       drawTransitionLabels(ctx, snapshot.arrowPairs ?? [], snapshot.states, {
         baseColor: canvasText,
@@ -526,27 +517,13 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         ctx.restore();
       });
 
-      previewArrowPairs.forEach(pair => {
-        const fromCircle = previewStates[pair.from];
-        const toCircle = previewStates[pair.to];
-        if (!fromCircle || !toCircle) return;
-        if (pair.from === pair.to) {
-          drawLoop(ctx, { x: fromCircle.x + previewPosition.x, y: fromCircle.y + previewPosition.y, r: fromCircle.r }, previewColor);
-          return;
-        }
-        drawArrow(
-          ctx,
-          { x: fromCircle.x + previewPosition.x, y: fromCircle.y + previewPosition.y, r: fromCircle.r },
-          { x: toCircle.x + previewPosition.x, y: toCircle.y + previewPosition.y, r: toCircle.r },
-          previewColor
-        );
-      });
-
       const shiftedPreviewStates = previewStates.map(state => ({
         ...state,
         x: state.x + previewPosition.x,
         y: state.y + previewPosition.y
       }));
+
+      drawArrowsBidirectional(ctx, previewArrowPairs, shiftedPreviewStates, previewColor);
 
       drawTransitionLabels(ctx, previewArrowPairs, shiftedPreviewStates, {
         baseColor: canvasText,
@@ -654,6 +631,64 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     ctx.closePath();
     ctx.fillStyle = color;
     ctx.fill();
+  }
+
+  function drawArrowsBidirectional(
+    ctx: CanvasRenderingContext2D,
+    pairs: Array<{ from: number; to: number; label?: string }>,
+    nodeStates: Array<{ x: number; y: number; r: number }>,
+    color: string
+  ) {
+    const processed = new Set<string>();
+    pairs.forEach((pair, pairIndex) => {
+      if (processed.has(`${pairIndex}`)) return;
+      const fromCircle = nodeStates[pair.from];
+      const toCircle = nodeStates[pair.to];
+      if (!fromCircle || !toCircle) return;
+
+      const allBetween = pairs
+        .map((p, idx) => ({ ...p, originalIndex: idx }))
+        .filter(p =>
+          (p.from === pair.from && p.to === pair.to) ||
+          (p.from === pair.to && p.to === pair.from && pair.from !== pair.to)
+        );
+      allBetween.forEach(a => processed.add(`${a.originalIndex}`));
+
+      const forwardArrows = allBetween.filter(p => p.from === pair.from && p.to === pair.to);
+      const reverseArrows = allBetween.filter(p => p.from === pair.to && p.to === pair.from);
+
+      if (pair.from === pair.to) {
+        drawLoop(ctx, fromCircle, color);
+        return;
+      }
+
+      if (forwardArrows.length >= 1 && reverseArrows.length > 0) {
+        const minIndex = Math.min(pair.from, pair.to);
+        const maxIndex = Math.max(pair.from, pair.to);
+        const baseFrom = nodeStates[minIndex];
+        const baseTo = nodeStates[maxIndex];
+        if (!baseFrom || !baseTo) return;
+        const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+        const forwardOffset = pair.from === minIndex ? baseOffset : { x: -baseOffset.x, y: -baseOffset.y };
+        const reverseOffset = pair.from === minIndex ? { x: -baseOffset.x, y: -baseOffset.y } : baseOffset;
+        drawArrow(
+          ctx,
+          { x: fromCircle.x + forwardOffset.x, y: fromCircle.y + forwardOffset.y, r: fromCircle.r },
+          { x: toCircle.x + forwardOffset.x, y: toCircle.y + forwardOffset.y, r: toCircle.r },
+          color
+        );
+        if (reverseArrows.length >= 1) {
+          drawArrow(
+            ctx,
+            { x: toCircle.x + reverseOffset.x, y: toCircle.y + reverseOffset.y, r: toCircle.r },
+            { x: fromCircle.x + reverseOffset.x, y: fromCircle.y + reverseOffset.y, r: fromCircle.r },
+            color
+          );
+        }
+      } else {
+        drawArrow(ctx, fromCircle, toCircle, color);
+      }
+    });
   }
 
   function drawLoop(
