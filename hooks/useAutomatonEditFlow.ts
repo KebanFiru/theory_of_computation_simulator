@@ -217,7 +217,6 @@ export function useAutomatonEditFlow({
         onError: message => showToast(message, "error")
       });
     }
-    // Clear live canvas so the saved snapshot is the only thing rendered
     dfaManager.setStates([]);
     dfaManager.setArrowPairs([]);
     dfaManager.setArrowSelection([]);

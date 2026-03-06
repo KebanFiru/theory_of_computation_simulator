@@ -78,7 +78,6 @@ export class GNFA {
       return r;
     };
 
-    // Clone transitions into a mutable local map
     const trans = new Map<string, Map<string, string>>();
     const setT = (from: string, to: string, label: string) => {
       if (!trans.has(from)) trans.set(from, new Map());

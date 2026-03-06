@@ -118,7 +118,6 @@ export default function CanvasDialogs({
             <h3 className="text-xl font-bold mb-1 text-[var(--text)]">Create NFA from Regex</h3>
             <p className="text-xs text-[var(--text-subtle)] mb-4">Uses standard regex notation (Thompson&apos;s construction).</p>
 
-            {/* Syntax reference */}
             <div className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2">
               <p className="text-xs font-bold text-[var(--text-subtle)] mb-2 uppercase tracking-wide">Supported operators</p>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-[var(--text)]">

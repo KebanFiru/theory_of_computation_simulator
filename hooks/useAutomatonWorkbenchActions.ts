@@ -69,7 +69,7 @@ export function useAutomatonWorkbenchActions({
 
     return {
       x: Math.max(b.x1, b.x2) + gapPx / safeScale,
-      y: Math.max(b.y1, b.y2) + 5
+      y: Math.min(b.y1, b.y2)
     };
   }, [dfaManager.savedDFAs, lastCanvasPos, scale, selectedDFAName]);
 

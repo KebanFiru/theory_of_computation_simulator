@@ -84,6 +84,91 @@ const toPostfix = (tokens: RegexToken[]) => {
   return output;
 };
 
+const epsilonClosure = (nfa: NFAAutomaton, state: number): Set<number> => {
+  const closure = new Set<number>();
+  const stack = [state];
+  while (stack.length > 0) {
+    const curr = stack.pop()!;
+    if (closure.has(curr)) continue;
+    closure.add(curr);
+    nfa.getTransitions(curr, EPSILON).forEach(target => stack.push(target));
+  }
+  return closure;
+};
+
+const eliminateEpsilons = (nfa: NFAAutomaton): NFAAutomaton => {
+  const stateList = [...nfa.states];
+
+  const epsClose = new Map<number, Set<number>>();
+  for (const s of stateList) {
+    epsClose.set(s, epsilonClosure(nfa, s));
+  }
+
+  const alphabet = [...nfa.alphabet]; 
+  const newEdges: Array<{ from: number; to: number; symbol: string }> = [];
+  for (const s of stateList) {
+    for (const sym of alphabet) {
+      const reachable = new Set<number>();
+      for (const q of epsClose.get(s)!) {
+        nfa.getTransitions(q, sym).forEach(r => {
+          for (const rc of epsClose.get(r)!) reachable.add(rc);
+        });
+      }
+      for (const r of reachable) {
+        newEdges.push({ from: s, to: r, symbol: sym });
+      }
+    }
+  }
+
+  const origAccept = nfa.acceptStates;
+  const newAccept = stateList.filter(s => {
+    for (const q of epsClose.get(s)!) if (origAccept.has(q)) return true;
+    return false;
+  });
+
+  const startClosure = epsClose.get(nfa.startState)!;
+  const reachable = new Set<number>(startClosure);
+  const queue = [...startClosure];
+  while (queue.length > 0) {
+    const s = queue.shift()!;
+    for (const edge of newEdges) {
+      if (edge.from === s && !reachable.has(edge.to)) {
+        reachable.add(edge.to);
+        queue.push(edge.to);
+      }
+    }
+  }
+
+  const sorted = [...reachable].sort((a, b) => {
+    if ([...startClosure].includes(a) && a === nfa.startState) return -1;
+    if ([...startClosure].includes(b) && b === nfa.startState) return 1;
+    return a - b;
+  });
+  const canonicalStart = Math.min(...startClosure);
+  const sortedStates = [canonicalStart, ...sorted.filter(s => s !== canonicalStart)];
+  const renumber = new Map<number, number>();
+  sortedStates.forEach((s, i) => renumber.set(s, i));
+
+  const cleanNfa = new NFAAutomaton({
+    states: sortedStates.map((_, i) => i),
+    alphabet,
+    startState: 0,
+    acceptStates: newAccept
+      .filter(s => reachable.has(s))
+      .map(s => renumber.get(s)!)
+      .filter((v): v is number => v !== undefined)
+      .filter((v, i, arr) => arr.indexOf(v) === i)
+  });
+
+  for (const e of newEdges) {
+    if (reachable.has(e.from) && reachable.has(e.to)) {
+      cleanNfa.addTransition(renumber.get(e.from)!, renumber.get(e.to)!, e.symbol);
+    }
+  }
+
+  return cleanNfa;
+};
+
 export const buildNFAFromRegex = (rawRegex: string) => {
   const regex = rawRegex.trim();
   if (!regex) {
@@ -187,7 +272,7 @@ export const buildNFAFromRegex = (rawRegex: string) => {
   }
 
   const result = stack[0];
-  const nfa = new NFAAutomaton({
+  const thompsonNfa = new NFAAutomaton({
     states: Array.from({ length: stateCounter }, (_, index) => index),
     alphabet: [],
     startState: result.start,
@@ -195,8 +280,10 @@ export const buildNFAFromRegex = (rawRegex: string) => {
   });
 
   transitions.forEach(({ from, to, symbol }) => {
-    nfa.addTransition(from, to, symbol);
+    thompsonNfa.addTransition(from, to, symbol);
   });
+
+  const nfa = eliminateEpsilons(thompsonNfa);
 
   return nfa;
 };

@@ -36,14 +36,12 @@ import type {
 } from "../types/page";
 
 export default function Canvas() {
-  // Force update for AutomatonTableDisplay
   const [, forceUpdate] = useReducer(x => x + 1, 0);
   const [editMode, setEditMode] = useState(false);
   const [editingDFAName, setEditingDFAName] = useState<string | null>(null);
   const [editingParentMode, setEditingParentMode] = useState<"FA" | "TM" | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
-  // Mode states
   const [startingState, setStartgingState] = useState(false);
   const [state, setState] = useState(false);
   const [acceptState, setAcceptState] = useState(false);
@@ -77,7 +75,6 @@ export default function Canvas() {
   const [tmTransitionDialog, setTmTransitionDialog] = useState<TmTransitionDialogState>({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
   const [faTransitionDialog, setFaTransitionDialog] = useState<FaTransitionDialogState>({ isOpen: false, from: -1, to: -1, symbols: [], custom: "" });
 
-  // Custom hooks
   const dfaManager = useAutomatonManager();
   const canvasInteraction = useCanvasInteraction();
   const selection = useSelectionMode();
