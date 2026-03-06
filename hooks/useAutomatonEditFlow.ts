@@ -164,21 +164,19 @@ export function useAutomatonEditFlow({
         showToast("Cannot save an empty DFA.", "error");
         return;
       }
-      const existingBounds = dfaManager.savedDFAs[editingDFAName]?.bounds;
-      let boundsToSave = existingBounds;
-      if (!boundsToSave) {
-        const minX = Math.min(...dfaManager.states.map(s => s.x));
-        const maxX = Math.max(...dfaManager.states.map(s => s.x));
-        const minY = Math.min(...dfaManager.states.map(s => s.y));
-        const maxY = Math.max(...dfaManager.states.map(s => s.y));
-        const padding = 24;
-        boundsToSave = {
-          x1: minX - padding,
-          y1: minY - padding,
-          x2: maxX + padding,
-          y2: maxY + padding
-        };
-      }
+
+      const minX = Math.min(...dfaManager.states.map(s => s.x));
+      const maxX = Math.max(...dfaManager.states.map(s => s.x));
+      const minY = Math.min(...dfaManager.states.map(s => s.y));
+      const maxY = Math.max(...dfaManager.states.map(s => s.y));
+      const padding = 24;
+      const boundsToSave = {
+        x1: minX - padding,
+        y1: minY - padding,
+        x2: maxX + padding,
+        y2: maxY + padding
+      };
+
       dfaManager.saveDFA(editingDFAName, boundsToSave, {
         forceOverwrite: true,
         onError: message => showToast(message, "error")

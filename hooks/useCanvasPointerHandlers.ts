@@ -1,5 +1,5 @@
 "use client";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { State } from "../lib/util-classes/state";
 import type { UseCanvasPointerHandlersParams } from "../types/hooks";
 
@@ -16,66 +16,7 @@ export function useCanvasPointerHandlers({
   setImportCursor,
   setLastCanvasPos
 }: UseCanvasPointerHandlersParams) {
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!canvasRef.current || !rect) return;
-    const x = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
-    const y = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
-
-    if (selection.selectionMode) {
-      selection.startSelection(x, y);
-      return;
-    }
-
-    if (!editMode) {
-      const hitSavedDFA = Object.entries(dfaManager.savedDFAs).find(([, data]) => {
-        const b = data.bounds;
-        const minX = Math.min(b.x1, b.x2);
-        const maxX = Math.max(b.x1, b.x2);
-        const minY = Math.min(b.y1, b.y2);
-        const maxY = Math.max(b.y1, b.y2);
-        return x >= minX && x <= maxX && y >= minY && y <= maxY;
-      });
-
-      if (hitSavedDFA) {
-        const [name, data] = hitSavedDFA;
-        const b = data.bounds;
-        const minX = Math.min(b.x1, b.x2);
-        const maxX = Math.max(b.x1, b.x2);
-        const minY = Math.min(b.y1, b.y2);
-        const maxY = Math.max(b.y1, b.y2);
-        const liveStateSnapshot = dfaManager.states
-          .map((state, index) => ({ index, x: state.x, y: state.y }))
-          .filter(state => state.x >= minX && state.x <= maxX && state.y >= minY && state.y <= maxY);
-
-        setSelectedDFAName(name);
-        setDraggedSavedFA({
-          name,
-          anchor: { x, y },
-          bounds: { ...data.bounds },
-          snapshotStates: data.snapshot?.states?.map(state => State.from(state)) ?? [],
-          liveStateSnapshot
-        });
-        return;
-      }
-    }
-
-    const circleIdx = dfaManager.states.findIndex(
-      c => Math.hypot(c.x - x, c.y - y) <= c.r
-    );
-    if (circleIdx !== -1) {
-      canvasInteraction.setDraggedCircle(circleIdx);
-      canvasInteraction.setDragOffset({
-        x: x - dfaManager.states[circleIdx].x,
-        y: y - dfaManager.states[circleIdx].y
-      });
-      return;
-    }
-    canvasInteraction.setIsDragging(true);
-    canvasInteraction.setLastPos({ x: e.clientX, y: e.clientY });
-  }, [canvasRef, canvasInteraction, selection, editMode, dfaManager.savedDFAs, dfaManager.states, setSelectedDFAName, setDraggedSavedFA]);
-
-  const onMouseUp = useCallback(() => {
+  const stopPointerInteraction = useCallback(() => {
     if (selection.isDrawingSelection && selection.selectionStart) {
       selection.finishSelection();
     }
@@ -86,11 +27,11 @@ export function useCanvasPointerHandlers({
     setDraggedSavedFA(null);
   }, [canvasInteraction, selection, setDraggedSavedFA]);
 
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
+  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!canvasRef.current || !rect) return;
-    const cursorX = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
-    const cursorY = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
+    const cursorX = (clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
+    const cursorY = (clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
     setLastCanvasPos({ x: cursorX, y: cursorY });
 
     if (importPreview) {
@@ -166,11 +107,111 @@ export function useCanvasPointerHandlers({
     }
     if (!canvasInteraction.isDragging) return;
     canvasInteraction.setOffset(prev => ({
-      x: prev.x + (e.clientX - canvasInteraction.lastPos.x),
-      y: prev.y + (e.clientY - canvasInteraction.lastPos.y)
+      x: prev.x + (clientX - canvasInteraction.lastPos.x),
+      y: prev.y + (clientY - canvasInteraction.lastPos.y)
     }));
-    canvasInteraction.setLastPos({ x: e.clientX, y: e.clientY });
+    canvasInteraction.setLastPos({ x: clientX, y: clientY });
   }, [canvasRef, canvasInteraction, setLastCanvasPos, importPreview, setImportCursor, draggedSavedFA, dfaManager, selection]);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRef.current || !rect) return;
+    const x = (e.clientX - rect.left - canvasInteraction.offset.x) / canvasInteraction.scale;
+    const y = (e.clientY - rect.top - canvasInteraction.offset.y) / canvasInteraction.scale;
+
+    if (selection.selectionMode) {
+      selection.startSelection(x, y);
+      return;
+    }
+
+    if (!editMode) {
+      const hitSavedDFA = Object.entries(dfaManager.savedDFAs).find(([, data]) => {
+        const b = data.bounds;
+        const minX = Math.min(b.x1, b.x2);
+        const maxX = Math.max(b.x1, b.x2);
+        const minY = Math.min(b.y1, b.y2);
+        const maxY = Math.max(b.y1, b.y2);
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+      });
+
+      if (hitSavedDFA) {
+        const [name, data] = hitSavedDFA;
+        const b = data.bounds;
+        const minX = Math.min(b.x1, b.x2);
+        const maxX = Math.max(b.x1, b.x2);
+        const minY = Math.min(b.y1, b.y2);
+        const maxY = Math.max(b.y1, b.y2);
+        const liveStateSnapshot = dfaManager.states
+          .map((state, index) => ({ index, x: state.x, y: state.y }))
+          .filter(state => state.x >= minX && state.x <= maxX && state.y >= minY && state.y <= maxY);
+
+        setSelectedDFAName(name);
+        setDraggedSavedFA({
+          name,
+          anchor: { x, y },
+          bounds: { ...data.bounds },
+          snapshotStates: data.snapshot?.states?.map(state => State.from(state)) ?? [],
+          liveStateSnapshot
+        });
+        return;
+      }
+    }
+
+    const circleIdx = dfaManager.states.findIndex(
+      c => Math.hypot(c.x - x, c.y - y) <= c.r
+    );
+    if (circleIdx !== -1) {
+      canvasInteraction.setDraggedCircle(circleIdx);
+      canvasInteraction.setDragOffset({
+        x: x - dfaManager.states[circleIdx].x,
+        y: y - dfaManager.states[circleIdx].y
+      });
+      return;
+    }
+    canvasInteraction.setIsDragging(true);
+    canvasInteraction.setLastPos({ x: e.clientX, y: e.clientY });
+  }, [canvasRef, canvasInteraction, selection, editMode, dfaManager.savedDFAs, dfaManager.states, setSelectedDFAName, setDraggedSavedFA]);
+
+  const onMouseUp = useCallback(() => {
+    stopPointerInteraction();
+  }, [stopPointerInteraction]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    const isTrackingOutsideCanvas =
+      selection.isDrawingSelection ||
+      canvasInteraction.draggedCircle !== null ||
+      canvasInteraction.isDragging ||
+      draggedSavedFA !== null;
+
+    if (isTrackingOutsideCanvas) return;
+    handlePointerMove(e.clientX, e.clientY);
+  }, [canvasInteraction.draggedCircle, canvasInteraction.isDragging, draggedSavedFA, handlePointerMove, selection.isDrawingSelection]);
+
+  useEffect(() => {
+    const isTrackingOutsideCanvas =
+      selection.isDrawingSelection ||
+      canvasInteraction.draggedCircle !== null ||
+      canvasInteraction.isDragging ||
+      draggedSavedFA !== null;
+
+    if (!isTrackingOutsideCanvas) return;
+
+    const handleWindowMouseMove = (event: MouseEvent) => {
+      handlePointerMove(event.clientX, event.clientY);
+    };
+
+    const handleWindowMouseUp = () => {
+      stopPointerInteraction();
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
+    };
+  }, [canvasInteraction.draggedCircle, canvasInteraction.isDragging, draggedSavedFA, handlePointerMove, selection.isDrawingSelection, stopPointerInteraction]);
 
   const onDoubleClick = useCallback((e: React.MouseEvent) => {
     if (selection.selectionMode || selection.isDrawingSelection) return;

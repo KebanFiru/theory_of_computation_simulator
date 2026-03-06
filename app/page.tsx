@@ -109,7 +109,6 @@ export default function Canvas() {
     handleCreateRegexAutomaton,
     handleConvertSelectedNfaToDfa,
     handleCreateGnfa,
-    handleCreateEnfa,
     handleCreateCfg,
     handleImportJson
   } = useAutomatonWorkbenchActions({
@@ -281,7 +280,6 @@ export default function Canvas() {
         onRegexToFA={handleRegexToFA}
         onConvertSelectedNfaToDfa={handleConvertSelectedNfaToDfa}
         onCreateGnfa={handleCreateGnfa}
-        onCreateEnfa={handleCreateEnfa}
         onCreateCfg={handleCreateCfg}
         onOpenChange={setIsMenuOpen}
       />

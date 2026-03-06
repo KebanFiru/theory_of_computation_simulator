@@ -352,10 +352,30 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       );
       ctx.setLineDash([]);
     }
+
+    const liveEditingBounds =
+      editMode && editingDFAName && states.length > 0
+        ? (() => {
+            const padding = 24;
+            const minX = Math.min(...states.map(state => state.x));
+            const maxX = Math.max(...states.map(state => state.x));
+            const minY = Math.min(...states.map(state => state.y));
+            const maxY = Math.max(...states.map(state => state.y));
+            return {
+              x1: minX - padding,
+              y1: minY - padding,
+              x2: maxX + padding,
+              y2: maxY + padding
+            };
+          })()
+        : null;
     
     // Draw saved DFA rectangles in green
     Object.entries(savedDFAs).forEach(([name, data]) => {
-      const bounds = data.bounds;
+      const bounds =
+        editMode && editingDFAName === name && liveEditingBounds
+          ? liveEditingBounds
+          : data.bounds;
       if (!Number.isFinite(bounds.x1) || !Number.isFinite(bounds.x2) || !Number.isFinite(bounds.y1) || !Number.isFinite(bounds.y2)) {
         return;
       }
@@ -383,6 +403,9 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     });
 
     Object.entries(savedDFAs).forEach(([name, data]) => {
+      if (editMode && editingDFAName === name) {
+        return;
+      }
       const snapshot = data.snapshot;
       if (!snapshot?.states?.length) return;
 
