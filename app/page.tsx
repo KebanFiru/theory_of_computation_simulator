@@ -1,10 +1,10 @@
 "use client";
 import React, { useRef, useState, useReducer, useCallback } from "react";
 import SelectionMenu from "../components/SelectionMenuComponent";
-import AutomatonCanvas from "../components/AutomatonCanvas";
+import AutomatonCanvas from "@/components/AutomatonCanvas";
 import ArrowInputFields from "../components/ArrowInputFields";
 import AutomatonNameDialog from "../components/AutomatonNameDialog";
-import AutomatonTableDisplay from "../components/AutomatonTableDisplay";
+import AutomatonTableDisplay from "@/components/AutomatonTableDisplay";
 import SelectionModeIndicator from "../components/SelectionModeIndicator";
 import HamburgerMenu from "../components/HamburgerMenu";
 import EditModeBanner from "../components/EditModeBanner";

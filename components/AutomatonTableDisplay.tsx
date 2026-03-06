@@ -3,7 +3,6 @@ import React from "react";
 import type { AutomatonTableDisplayProps } from "../types/component-props";
 import { SavedFACard } from "../lib/models";
 
-
 export default function AutomatonTableDisplay({
   savedDFAs,
   scale,
@@ -55,19 +54,20 @@ export default function AutomatonTableDisplay({
               </div>
               <button
                 className="ml-2 px-2 py-1 bg-[var(--surface-strong)] text-[var(--text)] rounded hover:bg-[var(--surface-muted)]"
-                onClick={() => {
-                  // Custom event: trigger edit for this DFA
+                onClick={e => {
+                  e.stopPropagation();
                   const event = new CustomEvent("editDFA", { detail: { name } });
                   window.dispatchEvent(event);
                 }}
-              >Edit</button>
+              >
+                Edit
+              </button>
             </div>
             <table className="border-collapse border border-[var(--border-strong)] text-xs w-full">
               <tbody>
                 {data.table.map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {row.map((cell, cellIndex) => {
-                      // Accept state: state label ends with *
                       const isAcceptState = cellIndex === 0 && rowIndex !== 0 && /\*$/.test(cell);
                       return (
                         <td
