@@ -213,6 +213,7 @@ export type AutomatonEditManagerApi = {
   dfaAlphabets: { [name: string]: string[] };
   savedDFAs: SavedDFAs;
   states: State[];
+  arrowPairs: Transition[];
   alphabet: string[];
   restoreAlphabet: (dfaName: string) => void;
   clearAlphabet: () => void;

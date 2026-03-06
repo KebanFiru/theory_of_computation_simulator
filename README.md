@@ -51,11 +51,11 @@ Current TM implementation is:
 ### Install
 
 ```bash
-pnpm install
+npm install
 ```
 
 ### Run development server
 
 ```bash
-pnpm dev
+npm dev
 ```
