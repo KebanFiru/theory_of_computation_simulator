@@ -213,6 +213,7 @@ export type AutomatonEditManagerApi = {
   states: State[];
   alphabet: string[];
   restoreAlphabet: (dfaName: string) => void;
+  clearAlphabet: () => void;
   setAlphabet: React.Dispatch<React.SetStateAction<string[]>>;
   setStates: React.Dispatch<React.SetStateAction<State[]>>;
   setArrowPairs: React.Dispatch<React.SetStateAction<Transition[]>>;

@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useEffect, forwardRef, useState } from "react";
 import type { AutomatonCanvasProps } from "../types/component-props";
+import { Transition } from "../lib/util-classes/transition";
 
 const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({ 
   states,
@@ -301,7 +302,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         const baseFrom = states[minIndex];
         const baseTo = states[maxIndex];
         if (!baseFrom || !baseTo) return;
-        const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+        const baseOffset = Transition.calculateParallelOffset(baseFrom, baseTo, true);
         const forwardOffset = pair.from === minIndex ? baseOffset : { x: -baseOffset.x, y: -baseOffset.y };
         drawArrow(
           ctx,
@@ -321,7 +322,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         const baseFrom = states[minIndex];
         const baseTo = states[maxIndex];
         if (!baseFrom || !baseTo) return;
-        const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+        const baseOffset = Transition.calculateParallelOffset(baseFrom, baseTo, true);
         const reverseOffset = pair.from === minIndex ? { x: -baseOffset.x, y: -baseOffset.y } : baseOffset;
         drawArrow(
           ctx,
@@ -568,28 +569,6 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
     showLiveTransitionLabels
   ]);
 
-  function calculateParallelOffset(
-    from: { x: number; y: number },
-    to: { x: number; y: number },
-    isForwardDirection: boolean
-  ) {
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    const length = Math.hypot(dx, dy);
-    
-    if (length === 0) return { x: 0, y: 0 };
-    
-    const offsetDistance = 10;
-    const perpX = -dy / length;
-    const perpY = dx / length;
-    const sign = isForwardDirection ? 1 : -1;
-    
-    return {
-      x: perpX * offsetDistance * sign,
-      y: perpY * offsetDistance * sign
-    };
-  }
-
   function drawArrow(
     ctx: CanvasRenderingContext2D,
     from: { x: number; y: number; r?: number },
@@ -668,7 +647,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
         const baseFrom = nodeStates[minIndex];
         const baseTo = nodeStates[maxIndex];
         if (!baseFrom || !baseTo) return;
-        const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+        const baseOffset = Transition.calculateParallelOffset(baseFrom, baseTo, true);
         const forwardOffset = pair.from === minIndex ? baseOffset : { x: -baseOffset.x, y: -baseOffset.y };
         const reverseOffset = pair.from === minIndex ? { x: -baseOffset.x, y: -baseOffset.y } : baseOffset;
         drawArrow(
@@ -773,7 +752,7 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
           const baseFrom = nodeStates[minIndex];
           const baseTo = nodeStates[maxIndex];
           if (baseFrom && baseTo) {
-            const baseOffset = calculateParallelOffset(baseFrom, baseTo, true);
+            const baseOffset = Transition.calculateParallelOffset(baseFrom, baseTo, true);
             const isForward = entry.from === minIndex;
             const appliedOffset = isForward
               ? baseOffset

@@ -28,7 +28,7 @@ export class Transition {
     return new Transition({ ...this, from, to });
   }
 
-  private static calculateParallelOffset(
+  static calculateParallelOffset(
     from: { x: number; y: number },
     to: { x: number; y: number },
     isForwardDirection: boolean
