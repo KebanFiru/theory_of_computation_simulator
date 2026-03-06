@@ -83,7 +83,8 @@ export function useAutomatonWorkbenchActions({
         name,
         type,
         content,
-        position: anchor
+        position: anchor,
+        relatedDFAName: relatedName ?? undefined
       }
     ]);
   }, [getRelatedAnchor, setTextArtifacts]);

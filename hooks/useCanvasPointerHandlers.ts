@@ -14,7 +14,9 @@ export function useCanvasPointerHandlers({
   setDraggedSavedFA,
   importPreview,
   setImportCursor,
-  setLastCanvasPos
+  setLastCanvasPos,
+  textArtifacts,
+  setTextArtifacts
 }: UseCanvasPointerHandlersParams) {
   const stopPointerInteraction = useCallback(() => {
     if (selection.isDrawingSelection && selection.selectionStart) {
@@ -52,6 +54,14 @@ export function useCanvasPointerHandlers({
             return State.from(state).moveTo(original.x + dx, original.y + dy);
           })
         );
+      }
+
+      if (draggedSavedFA.artifactSnapshot.length > 0) {
+        setTextArtifacts(prev => prev.map(artifact => {
+          const snap = draggedSavedFA.artifactSnapshot.find(s => s.id === artifact.id);
+          if (!snap) return artifact;
+          return { ...artifact, position: { x: snap.x + dx, y: snap.y + dy } };
+        }));
       }
 
       dfaManager.setSavedDFAs(prev => {
@@ -111,7 +121,7 @@ export function useCanvasPointerHandlers({
       y: prev.y + (clientY - canvasInteraction.lastPos.y)
     }));
     canvasInteraction.setLastPos({ x: clientX, y: clientY });
-  }, [canvasRef, canvasInteraction, setLastCanvasPos, importPreview, setImportCursor, draggedSavedFA, dfaManager, selection]);
+  }, [canvasRef, canvasInteraction, setLastCanvasPos, importPreview, setImportCursor, draggedSavedFA, dfaManager, selection, setTextArtifacts]);
 
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     const rect = canvasRef.current?.getBoundingClientRect();
@@ -151,7 +161,10 @@ export function useCanvasPointerHandlers({
           anchor: { x, y },
           bounds: { ...data.bounds },
           snapshotStates: data.snapshot?.states?.map(state => State.from(state)) ?? [],
-          liveStateSnapshot
+          liveStateSnapshot,
+          artifactSnapshot: textArtifacts
+            .filter(a => a.relatedDFAName === name)
+            .map(a => ({ id: a.id, x: a.position.x, y: a.position.y }))
         });
         return;
       }
@@ -170,7 +183,7 @@ export function useCanvasPointerHandlers({
     }
     canvasInteraction.setIsDragging(true);
     canvasInteraction.setLastPos({ x: e.clientX, y: e.clientY });
-  }, [canvasRef, canvasInteraction, selection, editMode, dfaManager.savedDFAs, dfaManager.states, setSelectedDFAName, setDraggedSavedFA]);
+  }, [canvasRef, canvasInteraction, selection, editMode, dfaManager.savedDFAs, dfaManager.states, setSelectedDFAName, setDraggedSavedFA, textArtifacts]);
 
   const onMouseUp = useCallback(() => {
     stopPointerInteraction();

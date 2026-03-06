@@ -4,6 +4,7 @@ import type { Transition } from "../lib/util-classes/transition";
 import type { SavedDFAs } from "./domain";
 import type {
   DraggedSavedFAState,
+  FaTransitionDialogState,
   ImportPreviewState,
   OverwriteDialogState,
   RegexDialogState,
@@ -97,6 +98,8 @@ export type UseCanvasPointerHandlersParams = {
   importPreview: ImportPreviewState;
   setImportCursor: React.Dispatch<React.SetStateAction<CanvasPoint | null>>;
   setLastCanvasPos: React.Dispatch<React.SetStateAction<CanvasPoint | null>>;
+  textArtifacts: TextArtifact[];
+  setTextArtifacts: React.Dispatch<React.SetStateAction<TextArtifact[]>>;
 };
 
 export type CanvasClickSelectionApi = {
@@ -149,6 +152,7 @@ export type UseCanvasClickHandlerParams = {
   setTransitionCountDialog: React.Dispatch<React.SetStateAction<TransitionCountDialogState>>;
   tmTransitionMode: boolean;
   setTmTransitionDialog: React.Dispatch<React.SetStateAction<TmTransitionDialogState>>;
+  setFaTransitionDialog: React.Dispatch<React.SetStateAction<FaTransitionDialogState>>;
   startingState: boolean;
   setStartgingState: React.Dispatch<React.SetStateAction<boolean>>;
   state: boolean;
@@ -267,6 +271,8 @@ export type UseTransitionFlowParams = {
   setTransitionCountDialog: React.Dispatch<React.SetStateAction<TransitionCountDialogState>>;
   tmTransitionDialog: TmTransitionDialogState;
   setTmTransitionDialog: React.Dispatch<React.SetStateAction<TmTransitionDialogState>>;
+  faTransitionDialog: FaTransitionDialogState;
+  setFaTransitionDialog: React.Dispatch<React.SetStateAction<FaTransitionDialogState>>;
   setRoad: React.Dispatch<React.SetStateAction<boolean>>;
   showToast: (message: string, type?: "error" | "success" | "info") => void;
 };

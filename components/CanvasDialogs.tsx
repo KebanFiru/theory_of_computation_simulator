@@ -1,21 +1,114 @@
 "use client";
 
+import React from "react";
 import type { CanvasDialogsProps } from "../types/page";
+
+type TapeSeg = { read: string; write: string; move: string };
+
+function parseTapes(value: string): TapeSeg[] {
+  const segs = value ? value.split(";") : ["0/1,R"];
+  return segs.map(seg => {
+    const slashIdx = seg.indexOf("/");
+    const commaIdx = seg.lastIndexOf(",");
+    if (slashIdx !== -1 && commaIdx !== -1 && commaIdx > slashIdx) {
+      return {
+        read: seg.slice(0, slashIdx),
+        write: seg.slice(slashIdx + 1, commaIdx),
+        move: seg.slice(commaIdx + 1)
+      };
+    }
+    return { read: "", write: "", move: "R" };
+  });
+}
+
+function assembleTapes(tapes: TapeSeg[]): string {
+  return tapes.map(t => `${t.read}/${t.write},${t.move}`).join(";");
+}
+
+function TmTapeEditor({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [tapes, setTapes] = React.useState<TapeSeg[]>(() => parseTapes(value));
+
+  React.useEffect(() => {
+    setTapes(parseTapes(value));
+  }, [value]);
+
+  const update = (i: number, field: keyof TapeSeg, val: string) => {
+    const next = tapes.map((t, idx) => idx === i ? { ...t, [field]: val } : t);
+    setTapes(next);
+    onChange(assembleTapes(next));
+  };
+
+  const addTape = () => {
+    const next = [...tapes, { read: "_", write: "_", move: "N" }];
+    setTapes(next);
+    onChange(assembleTapes(next));
+  };
+
+  const removeTape = (i: number) => {
+    const next = tapes.filter((_, idx) => idx !== i);
+    setTapes(next);
+    onChange(assembleTapes(next));
+  };
+
+  const inputClass = "w-14 px-2 py-1 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded text-[var(--text)] text-xs text-center";
+  const selectClass = "px-2 py-1 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded text-[var(--text)] text-xs";
+
+  return (
+    <div className="space-y-2">
+      {tapes.map((tape, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <span className="text-xs text-[var(--text-subtle)] w-12 shrink-0">Tape {i + 1}</span>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[var(--text-subtle)]">Read</span>
+            <input className={inputClass} value={tape.read} onChange={e => update(i, "read", e.target.value)} placeholder="0" />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[var(--text-subtle)]">Write</span>
+            <input className={inputClass} value={tape.write} onChange={e => update(i, "write", e.target.value)} placeholder="1" />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-[var(--text-subtle)]">Move</span>
+            <select className={selectClass} value={tape.move} onChange={e => update(i, "move", e.target.value)}>
+              <option value="R">R →</option>
+              <option value="L">L ←</option>
+              <option value="S">S (stay)</option>
+              <option value="N">N (stay)</option>
+            </select>
+          </div>
+          {tapes.length > 1 && (
+            <button className="text-xs text-[var(--danger)] hover:text-[var(--danger-strong)] px-1" onClick={() => removeTape(i)}>✕</button>
+          )}
+        </div>
+      ))}
+      <button
+        className="text-xs px-2 py-1 border border-[var(--border)] rounded hover:bg-[var(--surface-muted)] text-[var(--text-subtle)]"
+        onClick={addTape}
+      >
+        + Add tape
+      </button>
+      <p className="text-xs text-[var(--text-subtle)] font-mono pt-1">Preview: {value}</p>
+    </div>
+  );
+}
 
 export default function CanvasDialogs({
   regexDialog,
   transitionCountDialog,
   tmTransitionDialog,
+  faTransitionDialog,
   overwriteDialog,
   setRegexDialog,
   setTransitionCountDialog,
   setTmTransitionDialog,
+  setFaTransitionDialog,
   setOverwriteDialog,
   onCreateRegexAutomaton,
   onCloseRegexDialog,
   onTransitionCountConfirm,
   onTmTransitionConfirm,
-  onOverwriteConfirm
+  onFaTransitionConfirm,
+  onOverwriteConfirm,
+  faTransitionAlphabet
 }: CanvasDialogsProps) {
   return (
     <>
@@ -95,16 +188,14 @@ export default function CanvasDialogs({
 
       {tmTransitionDialog.isOpen && (
         <div className="fixed inset-0 bg-[var(--overlay)] flex items-center justify-center z-[70]">
-          <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-md w-full border border-[var(--border)]">
-            <h3 className="text-lg font-bold mb-3 text-[var(--text)]">TM Transition</h3>
-            <p className="text-sm text-[var(--text-subtle)] mb-3">Format: read/write,move segments (single tape: 0/1,R · multi tape: 0/1,R;_/_,N)</p>
-            <input
-              className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-4 text-[var(--text)]"
+          <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-lg w-full border border-[var(--border)]">
+            <h3 className="text-lg font-bold mb-1 text-[var(--text)]">TM Transition</h3>
+            <p className="text-xs text-[var(--text-subtle)] mb-4">Configure read, write, and head movement per tape.</p>
+            <TmTapeEditor
               value={tmTransitionDialog.value}
-              onChange={e => setTmTransitionDialog(prev => ({ ...prev, value: e.target.value }))}
-              onKeyDown={e => e.key === "Enter" && onTmTransitionConfirm()}
+              onChange={v => setTmTransitionDialog(prev => ({ ...prev, value: v }))}
             />
-            <div className="flex gap-2 justify-end">
+            <div className="flex gap-2 justify-end mt-4">
               <button
                 className="px-4 py-2 bg-[var(--surface-strong)] text-[var(--text)] rounded hover:bg-[var(--surface-muted)]"
                 onClick={() => setTmTransitionDialog({ isOpen: false, from: -1, to: -1, value: "0/1,R" })}
@@ -112,6 +203,49 @@ export default function CanvasDialogs({
                 Cancel
               </button>
               <button className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] rounded hover:bg-[var(--accent-strong)]" onClick={onTmTransitionConfirm}>Apply</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {faTransitionDialog.isOpen && (
+        <div className="fixed inset-0 bg-[var(--overlay)] flex items-center justify-center z-[70]">
+          <div className="bg-[var(--surface)] p-6 rounded-lg shadow-xl max-w-sm w-full border border-[var(--border)]">
+            <h3 className="text-lg font-bold mb-1 text-[var(--text)]">Transition Symbol</h3>
+            <p className="text-xs text-[var(--text-subtle)] mb-3">Pick a symbol from the alphabet or type a custom one.</p>
+            {faTransitionAlphabet.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {faTransitionAlphabet.map(sym => (
+                  <button
+                    key={sym}
+                    className={`px-3 py-1.5 rounded border text-xs font-semibold transition-all ${
+                      faTransitionDialog.symbol === sym
+                        ? "bg-[var(--accent)] text-[var(--accent-contrast)] border-[var(--accent-strong)]"
+                        : "bg-[var(--surface-muted)] text-[var(--text)] border-[var(--border)] hover:bg-[var(--surface-strong)]"
+                    }`}
+                    onClick={() => setFaTransitionDialog(prev => ({ ...prev, symbol: sym }))}
+                  >
+                    {sym}
+                  </button>
+                ))}
+              </div>
+            )}
+            <input
+              autoFocus
+              className="w-full px-4 py-2 border border-[var(--border-strong)] bg-[var(--surface-muted)] rounded mb-4 text-[var(--text)] font-mono"
+              placeholder="or type symbol…"
+              value={faTransitionDialog.symbol}
+              onChange={e => setFaTransitionDialog(prev => ({ ...prev, symbol: e.target.value }))}
+              onKeyDown={e => e.key === "Enter" && onFaTransitionConfirm()}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                className="px-4 py-2 bg-[var(--surface-strong)] text-[var(--text)] rounded hover:bg-[var(--surface-muted)]"
+                onClick={() => setFaTransitionDialog({ isOpen: false, from: -1, to: -1, symbol: "" })}
+              >
+                Cancel
+              </button>
+              <button className="px-4 py-2 bg-[var(--accent)] text-[var(--accent-contrast)] rounded hover:bg-[var(--accent-strong)]" onClick={onFaTransitionConfirm}>Add</button>
             </div>
           </div>
         </div>

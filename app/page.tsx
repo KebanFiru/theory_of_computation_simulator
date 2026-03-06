@@ -27,6 +27,7 @@ import { Transition } from "../lib/util-classes/transition";
 import type {
   OverwriteDialogState,
   DraggedSavedFAState,
+  FaTransitionDialogState,
   ImportPreviewState,
   RegexDialogState,
   TextArtifact,
@@ -74,6 +75,7 @@ export default function Canvas() {
   });
   const [transitionCountDialog, setTransitionCountDialog] = useState<TransitionCountDialogState>({ isOpen: false, from: -1, to: -1, max: 0, value: "1" });
   const [tmTransitionDialog, setTmTransitionDialog] = useState<TmTransitionDialogState>({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
+  const [faTransitionDialog, setFaTransitionDialog] = useState<FaTransitionDialogState>({ isOpen: false, from: -1, to: -1, symbol: "" });
 
   // Custom hooks
   const dfaManager = useAutomatonManager();
@@ -186,12 +188,15 @@ export default function Canvas() {
     setDraggedSavedFA,
     importPreview,
     setImportCursor,
-    setLastCanvasPos
+    setLastCanvasPos,
+    textArtifacts,
+    setTextArtifacts
   });
 
   const {
     handleTransitionCountConfirm,
-    handleTmTransitionConfirm
+    handleTmTransitionConfirm,
+    handleFaTransitionConfirm
   } = useTransitionFlow({
     dfaManager,
     transitionSlots,
@@ -200,6 +205,8 @@ export default function Canvas() {
     setTransitionCountDialog,
     tmTransitionDialog,
     setTmTransitionDialog,
+    faTransitionDialog,
+    setFaTransitionDialog,
     setRoad,
     showToast
   });
@@ -227,6 +234,7 @@ export default function Canvas() {
     setRoadSelection,
     transitionSlots,
     setTransitionCountDialog,
+    setFaTransitionDialog,
     tmTransitionMode,
     setTmTransitionDialog,
     startingState,
@@ -380,16 +388,20 @@ export default function Canvas() {
         regexDialog={regexDialog}
         transitionCountDialog={transitionCountDialog}
         tmTransitionDialog={tmTransitionDialog}
+        faTransitionDialog={faTransitionDialog}
         overwriteDialog={overwriteDialog}
         setRegexDialog={setRegexDialog}
         setTransitionCountDialog={setTransitionCountDialog}
         setTmTransitionDialog={setTmTransitionDialog}
+        setFaTransitionDialog={setFaTransitionDialog}
         setOverwriteDialog={setOverwriteDialog}
         onCreateRegexAutomaton={handleCreateRegexAutomaton}
         onCloseRegexDialog={handleCloseRegexDialog}
         onTransitionCountConfirm={handleTransitionCountConfirm}
         onTmTransitionConfirm={handleTmTransitionConfirm}
+        onFaTransitionConfirm={handleFaTransitionConfirm}
         onOverwriteConfirm={handleOverwriteConfirm}
+        faTransitionAlphabet={dfaManager.alphabet}
       />
 
       <FloatingArtifacts

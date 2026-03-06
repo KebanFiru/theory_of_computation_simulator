@@ -11,6 +11,8 @@ export function useTransitionFlow({
   setTransitionCountDialog,
   tmTransitionDialog,
   setTmTransitionDialog,
+  faTransitionDialog,
+  setFaTransitionDialog,
   setRoad,
   showToast
 }: UseTransitionFlowParams) {
@@ -49,6 +51,19 @@ export function useTransitionFlow({
     setTmTransitionDialog({ isOpen: false, from: -1, to: -1, value: "0/1,R" });
   }, [tmTransitionDialog, setArrowPairs, setTmTransitionDialog, setTransitionSlots, showToast]);
 
+  const handleFaTransitionConfirm = useCallback(() => {
+    const symbol = faTransitionDialog.symbol.trim();
+    if (!symbol) {
+      showToast("Please select or enter a symbol.", "error");
+      return;
+    }
+    const { from, to } = faTransitionDialog;
+    const slotKey = `${from}-${to}`;
+    setArrowPairs(prev => [...prev, Transition.create(from, to, symbol)]);
+    setTransitionSlots(prev => ({ ...prev, [slotKey]: (prev[slotKey] ?? 0) + 1 }));
+    setFaTransitionDialog({ isOpen: false, from: -1, to: -1, symbol: "" });
+  }, [faTransitionDialog, setArrowPairs, setFaTransitionDialog, setTransitionSlots, showToast]);
+
   useEffect(() => {
     const pairs = new Set<string>();
     arrowPairs.forEach(pair => {
@@ -71,6 +86,7 @@ export function useTransitionFlow({
 
   return {
     handleTransitionCountConfirm,
-    handleTmTransitionConfirm
+    handleTmTransitionConfirm,
+    handleFaTransitionConfirm
   };
 }

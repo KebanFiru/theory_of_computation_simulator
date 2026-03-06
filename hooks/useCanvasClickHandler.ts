@@ -27,6 +27,7 @@ export function useCanvasClickHandler({
   setRoadSelection,
   transitionSlots,
   setTransitionCountDialog,
+  setFaTransitionDialog,
   tmTransitionMode,
   setTmTransitionDialog,
   startingState,
@@ -208,6 +209,11 @@ export function useCanvasClickHandler({
         setRoadSelection(null);
         dfaManager.setArrowSelection([]);
 
+        if (dfaManager.alphabet.length > 0) {
+          setFaTransitionDialog({ isOpen: true, from, to, symbol: "" });
+          return;
+        }
+
         if (!transitionSlots[slotKey]) {
           setTransitionCountDialog({
             isOpen: true,
@@ -329,6 +335,7 @@ export function useCanvasClickHandler({
     setAcceptState,
     setEditMode,
     setEditingDFAName,
+    setFaTransitionDialog,
     setImportCursor,
     setImportPreview,
     setRoad,
