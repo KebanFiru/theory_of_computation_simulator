@@ -182,10 +182,16 @@ export function useAutomatonEditFlow({
         onError: message => showToast(message, "error")
       });
     }
+    // Clear live canvas so the saved snapshot is the only thing rendered
+    dfaManager.setStates([]);
+    dfaManager.setArrowPairs([]);
+    dfaManager.setArrowSelection([]);
+    dfaManager.clearAlphabet();
+    setTransitionSlots({});
     setEditMode(false);
     setEditingDFAName(null);
     setEditingParentMode(null);
-  }, [dfaManager, editingDFAName, setEditMode, setEditingDFAName, setEditingParentMode, showToast]);
+  }, [dfaManager, editingDFAName, setEditMode, setEditingDFAName, setEditingParentMode, setTransitionSlots, showToast]);
 
   return {
     handleSaveDFA,

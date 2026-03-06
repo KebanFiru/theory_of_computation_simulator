@@ -14,7 +14,7 @@ export function useTransitionFlow({
   setRoad,
   showToast
 }: UseTransitionFlowParams) {
-  const { arrowPairs, alphabet, setArrowPairs } = dfaManager;
+  const { arrowPairs, setArrowPairs } = dfaManager;
 
   const handleTransitionCountConfirm = useCallback(() => {
     const count = Number(transitionCountDialog.value);
@@ -57,7 +57,12 @@ export function useTransitionFlow({
     pairs.forEach(key => {
       const [from, to] = key.split("-").map(Number);
       const arrowsBetween = arrowPairs.filter(p => p.from === from && p.to === to);
-      const limit = transitionSlots[key] ?? alphabet.length;
+      // Only fill slots for pairs that have been explicitly registered in transitionSlots.
+      // Using `?? alphabet.length` as a fallback would add spurious arrows when transitionSlots
+      // is stale (e.g. re-render from setAlphabet inside saveDFA), causing duplicates on
+      // bidirectional transitions.
+      const limit = transitionSlots[key];
+      if (limit === undefined) return;
       const missing = limit - arrowsBetween.length;
       if (missing > 0) {
         setArrowPairs(prev => [
@@ -66,7 +71,7 @@ export function useTransitionFlow({
         ]);
       }
     });
-  }, [arrowPairs, alphabet.length, setArrowPairs, transitionSlots]);
+  }, [arrowPairs, setArrowPairs, transitionSlots]);
 
   return {
     handleTransitionCountConfirm,

@@ -332,11 +332,13 @@ const AutomatonCanvas = forwardRef<HTMLCanvasElement, AutomatonCanvasProps>(({
       }
     });
 
-    drawTransitionLabels(ctx, arrowPairs, states, {
-      baseColor: showLiveTransitionLabels ? canvasText : "rgba(0, 0, 0, 0)",
-      bgColor: canvasNode,
-      borderColor: arrowColor
-    });
+    if (showLiveTransitionLabels) {
+      drawTransitionLabels(ctx, arrowPairs, states, {
+        baseColor: canvasText,
+        bgColor: canvasNode,
+        borderColor: arrowColor
+      });
+    }
 
     // Draw selection rectangle if exists
     if (selectionRect) {
